@@ -1,0 +1,172 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  PRESIDENT
+  SENIOR_DIRECTOR
+  CO_DIRECTOR
+  TEAM_LEAD
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_APPROVAL
+  COMPLETED
+  REJECTED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  APPROVAL_NEEDED
+  TASK_REJECTED
+  TASK_OVERDUE
+}
+
+model User {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String
+  email          String         @unique
+  role           UserRole       @default(MEMBER)
+  teamId         String?        @db.Uuid
+  managerId      String?        @db.Uuid
+  status         UserStatus     @default(ACTIVE)
+  
+  // Relations
+  team           Team?          @relation("TeamMembers", fields: [teamId], references: [id])
+  ledTeam        Team?          @relation("TeamLead")
+  coDirectedTeam Team[]         @relation("CoDirectorTeams")
+  manager        User?          @relation("UserManager", fields: [managerId], references: [id])
+  subordinates   User[]         @relation("UserManager")
+  
+  createdProjects Project[]     @relation("ProjectCreator")
+  createdTasks    Task[]        @relation("TaskCreator")
+  assignedTasks   Task[]        @relation("TaskAssignee")
+  approvedTasks   Task[]        @relation("TaskApprover")
+  decidedApprovals Approval[]
+  notifications   Notification[]
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Team {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique
+  leadId       String?  @unique @db.Uuid
+  coDirectorId String?  @db.Uuid
+  
+  // Relations
+  lead         User?    @relation("TeamLead", fields: [leadId], references: [id])
+  coDirector   User?    @relation("CoDirectorTeams", fields: [coDirectorId], references: [id])
+  members      User[]   @relation("TeamMembers")
+  projects     Project[]
+}
+
+model Project {
+  id          String        @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  createdById String        @db.Uuid
+  teamId      String?       @db.Uuid
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?
+  dueDate     DateTime?
+  
+  // Relations
+  creator     User          @relation("ProjectCreator", fields: [createdById], references: [id])
+  team        Team?         @relation(fields: [teamId], references: [id])
+  tasks       Task[]
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Task {
+  id          String        @id @default(uuid()) @db.Uuid
+  projectId   String?       @db.Uuid
+  title       String
+  description String?
+  createdById String        @db.Uuid
+  assignedToId String?      @db.Uuid
+  priority    TaskPriority  @default(MEDIUM)
+  status      TaskStatus    @default(OPEN)
+  dueDate     DateTime?
+  approverId  String?       @db.Uuid
+  
+  // Relations
+  project     Project?      @relation(fields: [projectId], references: [id])
+  creator     User          @relation("TaskCreator", fields: [createdById], references: [id])
+  assignee    User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  approver    User?         @relation("TaskApprover", fields: [approverId], references: [id])
+  approvals   Approval[]
+  notifications Notification[]
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Approval {
+  id         String           @id @default(uuid()) @db.Uuid
+  taskId     String           @db.Uuid
+  decidedById String          @db.Uuid
+  decision   ApprovalDecision
+  comment    String?
+  decidedAt  DateTime         @default(now())
+  
+  // Relations
+  task       Task             @relation(fields: [taskId], references: [id])
+  decidedBy  User             @relation(fields: [decidedById], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   // "User", "Project", "Task", "Approval"
+  entityId   String   @db.Uuid
+  action     String   // "CREATED", "ASSIGNED", "CLAIMED", "SUBMITTED", "APPROVED", "REJECTED", "REASSIGNED"
+  actorId    String   @db.Uuid
+  timestamp  DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  taskId    String?          @db.Uuid
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  
+  // Relations
+  user      User             @relation(fields: [userId], references: [id])
+  task      Task?            @relation(fields: [taskId], references: [id])
+}
