@@ -65,13 +65,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   let visibleProjects = allProjects
   let visibleTasks = allTasks
 
-  if (isCoDirector) {
-    const overseenTeamIds = allTeams.filter(t => t.coDirectorId === user.id).map(t => t.id)
-    visibleTeams = allTeams.filter(t => overseenTeamIds.includes(t.id))
-    visibleProjects = allProjects.filter(p => p.teamId && overseenTeamIds.includes(p.teamId))
-    // Co-Director sees tasks for their overseen teams + any standalone tasks they created
-    visibleTasks = allTasks.filter(t => (t.project?.teamId && overseenTeamIds.includes(t.project.teamId)) || t.createdById === user.id)
-  } else if (isTeamLead || isMember) {
+  if (isTeamLead || isMember) {
     visibleTeams = allTeams.filter(t => t.id === user.teamId)
     visibleProjects = allProjects.filter(p => p.teamId === user.teamId)
     // Team Lead / Member sees tasks for their team + their own assigned/created tasks

@@ -139,9 +139,11 @@ A web-based task and project management system for the IT Avenue division, built
 
 ## 5. Core Workflows
 
-**Onboarding a user**
-- Co-Director adds a Team Lead or Member → system sets `manager_id`, sends welcome notification.
-- Team Lead adds a Member to their own team only (cannot add to other teams).
+**Onboarding a user (Email Invitation Flow)**
+- The system is strict invite-only. A user with appropriate permissions (President, Senior Director, Co-Director, or Team Lead) enters the new employee's name, email, role, and team.
+- The system immediately creates an underlying database record mapping their role and team.
+- Supabase automatically sends a secure email invitation to the user's email address.
+- The user clicks the link in the email, sets their password, and their account is fully activated.
 
 **Creating and assigning work**
 1. Senior Director or Co-Director creates a Project.
