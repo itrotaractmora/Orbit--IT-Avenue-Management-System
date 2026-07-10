@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { TaskStatus } from '@prisma/client'
 import { TaskStatusBadge } from './TaskStatusBadge'
 import { reassignTask } from '@/actions/taskActions'
+import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 interface TasksOversightTableProps {
@@ -150,10 +151,24 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
                       }}>
                         {t.assignee ? getInitials(t.assignee.name) : 'U'}
                       </div>
-                      <span>{t.assignee?.name || 'Unassigned'}</span>
+                      {t.assignee ? (
+                        <Link href={`/profile/${t.assignee.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
+                          {t.assignee.name}
+                        </Link>
+                      ) : (
+                        <span>Unassigned</span>
+                      )}
                     </div>
                   </td>
-                  <td className="body-text">{t.project?.title || 'General Task'}</td>
+                  <td className="body-text">
+                    {t.project ? (
+                      <Link href={`/project/${t.project.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
+                        {t.project.title}
+                      </Link>
+                    ) : (
+                      'General Task'
+                    )}
+                  </td>
                   <td>
                     <TaskStatusBadge status={t.status} />
                   </td>
