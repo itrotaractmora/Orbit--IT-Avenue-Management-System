@@ -1,7 +1,7 @@
 import { getSessionUser, logoutAction } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, User, LogOut, Settings } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Image from 'next/image'
 import { NavLink } from './_components/NavLink'
@@ -29,17 +29,13 @@ export default async function DashboardLayout({
       <aside className="sidebar">
         <div>
           <div style={{ marginBottom: 'var(--spacing-24)' }}>
-            <img
+            <Image
               src="/rotaract-logo.png"
-              alt="Rotaract UoM Logo"
-              style={{ width: '120px', height: 'auto', opacity: 0.9 }}
-              className="logo-light"
-            />
-            <img
-              src="/rotaract-logo-dark.png"
-              alt="Rotaract UoM Logo"
-              style={{ width: '120px', height: 'auto', opacity: 0.9 }}
-              className="logo-dark"
+              alt="Rotaract University of Moratuwa"
+              width={180}
+              height={60}
+              style={{ objectFit: 'contain', width: '100%', height: 'auto', maxHeight: '60px' }}
+              priority
             />
           </div>
 
@@ -48,24 +44,40 @@ export default async function DashboardLayout({
             marginBottom: 'var(--spacing-24)',
             borderRadius: 'var(--radius-input)',
             backgroundColor: 'var(--surface)',
-            border: '1px solid var(--border)'
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-12)'
           }}>
-            <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--on-surface)' }}>{user.name}</div>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--primary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginTop: '4px'
-            }}>
-              {user.role.replace('_', ' ')}
-            </div>
-            {user.team && (
-              <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>
-                {user.team.name}
+            {user.avatarUrl ? (
+              <img 
+                src={user.avatarUrl} 
+                alt="Avatar" 
+                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} 
+              />
+            ) : (
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }}>
+                {user.name.substring(0, 2).toUpperCase()}
               </div>
             )}
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--on-surface)' }}>{user.name}</div>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginTop: '4px'
+              }}>
+                {user.role.replace('_', ' ')}
+              </div>
+              {user.team && (
+                <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>
+                  {user.team.name}
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-20)' }}>
@@ -87,6 +99,10 @@ export default async function DashboardLayout({
                 <NavLink href={`/profile/${user.id}`}>
                   <User size={18} />
                   <span>Public Profile</span>
+                </NavLink>
+                <NavLink href={`/settings`}>
+                  <Settings size={18} />
+                  <span>Account Settings</span>
                 </NavLink>
               </nav>
             </div>

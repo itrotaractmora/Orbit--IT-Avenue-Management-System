@@ -208,3 +208,66 @@ export async function getTeams() {
 
   return []
 }
+
+export async function deactivateUserAction(userId: string) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  const isAdmin = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)
+  if (!isAdmin) {
+    return { error: 'Unauthorized. Only admin-tier users can deactivate members.' }
+  }
+
+  // Prevent self-deactivation
+  if (actor.id === userId) {
+    return { error: 'You cannot deactivate yourself.' }
+  }
+
+  try {
+    const userToDeactivate = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+    
+    if (!userToDeactivate) {
+      return { error: 'User not found.' }
+    }
+
+    // Protect President
+    if (userToDeactivate.role === UserRole.PRESIDENT) {
+      return { error: 'The President cannot be deactivated.' }
+    }
+
+    // 1. Set to INACTIVE in Prisma
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: UserStatus.INACTIVE }
+    })
+
+    // 2. Ban in Supabase to block login (Requires Supabase Admin API)
+    const supabaseAdmin = createAdminClient()
+    const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      ban_duration: '876000h' // approx 100 years
+    })
+
+    if (banError) {
+      console.error('Failed to ban in Supabase:', banError.message)
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'User',
+        entityId: userId,
+        action: 'DEACTIVATED',
+        actorId: actor.id
+      }
+    })
+
+    revalidatePath('/members')
+    revalidatePath('/dashboard')
+    return { success: 'User has been deactivated successfully.' }
+  } catch (error: any) {
+    return { error: `Failed to deactivate user: ${error.message}` }
+  }
+}

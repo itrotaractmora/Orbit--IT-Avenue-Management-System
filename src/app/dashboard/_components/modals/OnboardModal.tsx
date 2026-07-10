@@ -26,7 +26,11 @@ export function OnboardModal({
 
   async function handleOnboard(formData: FormData) {
     'use server'
-    await onboardUser(null, formData)
+    const result = await onboardUser(null, formData)
+    if (result?.error) {
+      // Re-throw as an error so the user sees something went wrong
+      throw new Error(result.error)
+    }
     redirect('/dashboard')
   }
 
@@ -58,35 +62,42 @@ export function OnboardModal({
                 <>
                   <option value="SENIOR_DIRECTOR">Senior Director</option>
                   <option value="CO_DIRECTOR">Co-Director</option>
+                  <option value="TEAM_LEAD">Team Lead</option>
+                  <option value="MEMBER">Team Member</option>
                 </>
               )}
-              {isExecutive && userRole !== UserRole.PRESIDENT && (
-                <option value="CO_DIRECTOR">Co-Director</option>
+              {userRole === UserRole.SENIOR_DIRECTOR && (
+                <>
+                  <option value="SENIOR_DIRECTOR">Senior Director</option>
+                  <option value="CO_DIRECTOR">Co-Director</option>
+                  <option value="TEAM_LEAD">Team Lead</option>
+                  <option value="MEMBER">Team Member</option>
+                </>
               )}
-              {(isExecutive || isCoDirector) && (
-                <option value="TEAM_LEAD">Team Lead</option>
+              {userRole === UserRole.CO_DIRECTOR && (
+                <>
+                  <option value="TEAM_LEAD">Team Lead</option>
+                  <option value="MEMBER">Team Member</option>
+                </>
               )}
-              <option value="MEMBER">Team Member</option>
+              {userRole === UserRole.TEAM_LEAD && (
+                <option value="MEMBER">Team Member</option>
+              )}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="teamId">Assigned Team</label>
-            {isTeamLead ? (
-              // Team Leads can only add to their own team
-              <>
-                <input type="hidden" name="teamId" value={userTeamId || ''} />
-                <select className="form-select" disabled>
-                  <option>{teams.find(t => t.id === userTeamId)?.name || 'Your Team'}</option>
-                </select>
-              </>
-            ) : (
-              <select className="form-select" id="teamId" name="teamId">
-                <option value="">No Team Assigned</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+            <label className="form-label" htmlFor="teamId">Assign to Team (Optional)</label>
+            <select className="form-select" id="teamId" name="teamId">
+              <option value="">No Team (Cross-Division)</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            {userRole === UserRole.TEAM_LEAD && (
+              <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+                Note: You can only onboard members to your own team.
+              </p>
             )}
           </div>
 
