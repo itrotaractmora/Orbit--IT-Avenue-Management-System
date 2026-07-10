@@ -29,17 +29,13 @@ export default async function DashboardLayout({
       <aside className="sidebar">
         <div>
           <div style={{ marginBottom: 'var(--spacing-24)' }}>
-            <img
+            <Image
               src="/rotaract-logo.png"
-              alt="Rotaract UoM Logo"
-              style={{ width: '120px', height: 'auto', opacity: 0.9 }}
-              className="logo-light"
-            />
-            <img
-              src="/rotaract-logo-dark.png"
-              alt="Rotaract UoM Logo"
-              style={{ width: '120px', height: 'auto', opacity: 0.9 }}
-              className="logo-dark"
+              alt="Rotaract University of Moratuwa"
+              width={180}
+              height={60}
+              style={{ objectFit: 'contain', width: '100%', height: 'auto', maxHeight: '60px' }}
+              priority
             />
           </div>
 
