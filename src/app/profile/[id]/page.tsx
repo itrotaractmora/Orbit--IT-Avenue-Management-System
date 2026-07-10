@@ -41,7 +41,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(83, 0, 183, 0.05)',
+            backgroundColor: 'rgba(200, 24, 90, 0.05)',
             color: 'var(--primary)'
           }}>
             <Award size={24} />
