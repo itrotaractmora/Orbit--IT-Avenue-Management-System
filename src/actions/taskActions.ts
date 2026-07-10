@@ -503,10 +503,12 @@ export async function getTasks() {
 }
 
 // Escalation Timeout Check: Escalates stalled pending approval tasks after 3 days
-export async function escalateStalledTasks() {
-  const actor = await getSessionUser()
-  if (!actor || !([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)) {
-    return { error: 'Unauthorized' }
+export async function escalateStalledTasks(isCron = false) {
+  if (!isCron) {
+    const actor = await getSessionUser()
+    if (!actor || !([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)) {
+      return { error: 'Unauthorized' }
+    }
   }
 
   const threeDaysAgo = new Date()
@@ -569,3 +571,4 @@ export async function escalateStalledTasks() {
     return { error: `Escalation check failed: ${error.message}` }
   }
 }
+

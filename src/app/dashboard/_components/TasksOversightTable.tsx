@@ -41,12 +41,35 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
     }
   }
 
+  const exportCSV = () => {
+    const headers = ['Task Title', 'Assignee', 'Project', 'Status', 'Due Date']
+    const rows = filteredTasks.map(t => [
+      `"${t.title.replace(/"/g, '""')}"`,
+      `"${t.assignee?.name || 'Unassigned'}"`,
+      `"${t.project?.title || 'General Task'}"`,
+      `"${t.status}"`,
+      `"${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'None'}"`
+    ])
+    
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.setAttribute('download', 'tasks_export.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 className="section-title">Tasks Oversight</h2>
         
-        <div style={{ display: 'flex', gap: 'var(--spacing-12)' }}>
+        <div style={{ display: 'flex', gap: 'var(--spacing-12)', alignItems: 'center' }}>
+          <button className="btn btn-secondary" onClick={exportCSV} style={{ height: '36px', fontSize: '12px' }}>
+            Export CSV
+          </button>
           <div style={{ position: 'relative' }}>
             <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--on-surface-variant)' }} />
             <input 
