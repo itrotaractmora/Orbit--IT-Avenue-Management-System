@@ -1,8 +1,13 @@
 import { getSessionUser, logoutAction } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, User, LogOut, Zap } from 'lucide-react'
+import { LayoutDashboard, User, LogOut } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import Image from 'next/image'
+import { NavLink } from './_components/NavLink'
+import { DarkModeToggle } from './_components/DarkModeToggle'
+import { MobileNavToggle } from './_components/MobileNavToggle'
+import { Toast } from './_components/Toast'
 
 export default async function DashboardLayout({
   children,
@@ -17,20 +22,28 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="dashboard-layout">
-      {/* Sidebar */}
+    <>
+      <div className="mobile-overlay" />
+      <div className="dashboard-layout">
+        {/* Sidebar */}
       <aside className="sidebar">
         <div>
-          <div className="sidebar-brand" style={{ marginBottom: 'var(--spacing-32)' }}>
-            <Zap size={18} strokeWidth={2.5} />
-            <span>IT Avenue</span>
+          <div style={{ marginBottom: 'var(--spacing-24)' }}>
+            <Image
+              src="/rotaract-logo.png"
+              alt="Rotaract University of Moratuwa"
+              width={180}
+              height={60}
+              style={{ objectFit: 'contain', width: '100%', height: 'auto', maxHeight: '60px' }}
+              priority
+            />
           </div>
 
           <div style={{
             padding: 'var(--spacing-12) var(--spacing-16)',
             marginBottom: 'var(--spacing-24)',
             borderRadius: 'var(--radius-input)',
-            backgroundColor: '#fafafa',
+            backgroundColor: 'var(--surface)',
             border: '1px solid var(--border)'
           }}>
             <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--on-surface)' }}>{user.name}</div>
@@ -56,10 +69,10 @@ export default async function DashboardLayout({
             <div className="sidebar-section">
               <div className="sidebar-section-title">Main</div>
               <nav className="nav-group">
-                <Link href="/dashboard" className="nav-link active">
+                <NavLink href="/dashboard" exact>
                   <LayoutDashboard size={18} />
                   <span>Dashboard</span>
-                </Link>
+                </NavLink>
               </nav>
             </div>
 
@@ -67,10 +80,10 @@ export default async function DashboardLayout({
             <div className="sidebar-section">
               <div className="sidebar-section-title">Settings</div>
               <nav className="nav-group">
-                <Link href={`/profile/${user.id}`} className="nav-link">
+                <NavLink href={`/profile/${user.id}`}>
                   <User size={18} />
                   <span>Public Profile</span>
-                </Link>
+                </NavLink>
               </nav>
             </div>
           </div>
@@ -85,11 +98,29 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, backgroundColor: 'var(--background)', display: 'flex', flexDirection: 'column' }}>
-        <div className="main-content">
+      <main style={{ flex: 1, backgroundColor: 'var(--background)', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+        <header style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 'var(--spacing-12) var(--spacing-24)', 
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--surface)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-12)' }}>
+            <MobileNavToggle />
+            <span style={{ fontWeight: 600, color: 'var(--on-surface)' }}>IT Division</span>
+          </div>
+          <DarkModeToggle />
+        </header>
+
+        <div className="main-content" style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </div>
       </main>
+      
+      <Toast />
     </div>
+    </>
   )
 }

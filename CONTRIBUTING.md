@@ -57,7 +57,8 @@ You need to create a config file to tell Next.js how to connect to your database
      - *Format:* `postgresql://<user>:<password>@<host>:<port>/<db_name>?schema=public`
      - *Default Local PostgreSQL Example:* `postgresql://postgres:postgres@localhost:5432/it_mgt?schema=public`
    - **`NEXT_PUBLIC_SUPABASE_URL`** & **`NEXT_PUBLIC_SUPABASE_ANON_KEY`:** Get these values from your Supabase Dashboard under Project Settings -> API.
-
+   - **`SUPABASE_SERVICE_ROLE_KEY`:** Required for the admin-only invite email system. Get this from the same API settings page. Keep this secret!
+   - **`CRON_SECRET`:** Create a custom secure string for the API escalation endpoint.
 ### Step 4: Sync the Database Schema
 Prisma needs to sync your PostgreSQL database with the project's data models. Run the following command:
 ```bash
@@ -120,8 +121,10 @@ A task moves through specific states in its lifecycle:
 
 1. **`OPEN` (Gray):** Task created, awaiting someone to claim or assign.
 2. **`IN_PROGRESS` (Blue):** A Member has claimed the task or been assigned.
+   - *Dropping / Reassigning:* Members can drop tasks they cannot complete (notifying their Lead), and Admins/Leads can manually reassign them at any point.
 3. **`PENDING_APPROVAL` (Yellow):** A Member marked the task complete. It now sits in the approver's queue.
    - *No Self-Approval Rule:* A user can never approve their own task. If an admin is the assignee, approval automatically escalates to their manager or a peer admin.
+   - *Automated Escalations:* Tasks stalled here for >3 days are automatically escalated by the cron API `/api/cron/escalate`.
 4. **`REJECTED` (Red):** Approver rejected the submission. A rejection comment is mandatory and displayed inline on the assignee's board. The task goes back to `IN_PROGRESS`.
 5. **`COMPLETED` (Green):** Approved task. It is locked, logged in the audit trail, and counted in stats.
 

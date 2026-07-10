@@ -4,12 +4,12 @@ import { prisma } from '@/utils/prisma'
 import { getSessionUser } from './authActions'
 import { UserRole, UserStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { createAdminClient } from '@/utils/supabase/admin'
 
 // Role Hierarchy Verification
 function canAddUser(actorRole: UserRole, targetRole: UserRole, actorTeamId: string | null, targetTeamId: string | null): boolean {
   if (actorRole === UserRole.PRESIDENT) {
-    // President can add Senior Directors and Co-Directors
-    return targetRole === UserRole.SENIOR_DIRECTOR || targetRole === UserRole.CO_DIRECTOR
+    return true
   }
 
   if (actorRole === UserRole.SENIOR_DIRECTOR) {
@@ -65,8 +65,24 @@ export async function onboardUser(prevState: any, formData: FormData) {
   }
 
   try {
+    // 1. Create user in Supabase Auth via Email Invitation
+    const supabaseAdmin = createAdminClient()
+    
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { name }
+    })
+
+    if (authError || !authData.user) {
+      console.error('Supabase Auth error:', authError)
+      return { error: `Failed to create auth account: ${authError?.message}` }
+    }
+
+    const authUserId = authData.user.id
+
+    // 2. Create user in Prisma with matching ID
     const newUser = await prisma.user.create({
       data: {
+        id: authUserId,
         name,
         email,
         role,

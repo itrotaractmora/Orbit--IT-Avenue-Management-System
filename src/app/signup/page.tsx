@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { signupAction } from '@/actions/authActions'
-import { Zap } from 'lucide-react'
+import Image from 'next/image'
 
 export default function SignupPage() {
   const [state, formAction, isPending] = useActionState(signupAction, null)
@@ -32,19 +32,20 @@ export default function SignupPage() {
         }}>
           <div style={{
             display: 'flex',
-            alignItems: 'center',
             justifyContent: 'center',
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(83, 0, 183, 0.05)',
-            color: 'var(--primary)'
+            marginBottom: 'var(--spacing-8)'
           }}>
-            <Zap size={20} strokeWidth={2.5} />
+            <Image
+              src="/rotaract-logo.png"
+              alt="Rotaract University of Moratuwa"
+              width={220}
+              height={72}
+              style={{ objectFit: 'contain', width: '220px', height: 'auto' }}
+              priority
+            />
           </div>
           <div>
-            <h2 className="card-title" style={{ fontSize: '20px', fontWeight: 700 }}>Join IT Avenue</h2>
-            <p className="body-text" style={{ fontSize: '13px', marginTop: '2px' }}>Register your workspace profile</p>
+            <p className="body-text" style={{ fontSize: '13px', marginTop: '2px', textAlign: 'center' }}>IT Division — Register your workspace profile</p>
           </div>
         </div>
 

@@ -1,33 +1,75 @@
 # IT Avenue Task Management System
 
-A web-based, role-scoped task and project management system designed for the IT Avenue division. It features a five-tier hierarchy with delegated user administration, project and task assignment, dynamic notifications, audit logs, and an approval pipeline with strict rules such as no self-approval.
+A modern, highly-performant, role-scoped task and project management system designed specifically for the IT Avenue division. It features a strict five-tier organizational hierarchy, an invite-only email onboarding system, dynamic role-based dashboards, and a robust task approval pipeline.
 
 ---
 
-## Getting Started
+## 🌟 Key Features
 
-To set up the project locally for development, copy the environment variables template and follow our step-by-step contribution guide.
+### 🔐 Security & Access Control
+- **Strict Role Hierarchy:** Five distinct tiers (President → Senior Director → Co-Director → Team Lead → Member).
+- **Invite-Only Onboarding:** Administrators invite members directly from the dashboard. The system utilizes **Supabase Admin APIs** to dispatch secure email invitations allowing users to create their accounts safely.
+- **Role-Based Dashboards:** The main dashboard intelligently filters data. Executives see division-wide analytics, Team Leads oversee their specific teams, and Members are restricted to their personal active workloads.
 
-- For environment setup, copy [`.env.example`](file:///D:/it_mgt/.env.example) to `.env` and fill in your database/Supabase configuration.
-- Read [`CONTRIBUTING.md`](file:///D:/it_mgt/CONTRIBUTING.md) for full setup instructions, tech stack details, and how to use Prisma Studio.
+### 📋 Advanced Task Lifecycle
+- **Task Claiming & Dropping:** Members can pull open tasks from their team's queue. If they are unable to complete it, they can drop it by providing a mandatory reason that notifies their manager.
+- **Manual Reassignment:** Admins can instantly transfer tasks between employees to optimize workload.
+- **Mandatory Approvals:** To ensure quality, all completed work enters a `Pending Approval` state. Assignees can *never* approve their own tasks.
+- **Automated Escalations:** Includes a secure API cron-trigger (`/api/cron/escalate`) that automatically sweeps for stalled approvals and escalates them up the leadership chain.
+
+### 🎨 Modern UI & Experience
+- **Fluid & Responsive:** Built from the ground up without heavy CSS frameworks. Utilizes native CSS variables, flexbox, and grid layouts. Features a sliding mobile drawer for smaller screens.
+- **Dark Mode Integration:** Native, flicker-free dark mode toggle using `next-themes` style implementations.
+- **Parallel Fetching:** Dashboard data (Tasks, Projects, Users, Notifications, Audit Logs) are all fetched asynchronously using `Promise.all()`, ensuring blazing-fast initial load times.
+- **Data Exporting:** Built-in "Export CSV" functionality for executives to quickly download oversight tables for meetings.
+
+### 👤 Member Profiles
+- **Shareable Portfolios:** Every user has a dedicated, shareable profile page (e.g., `/profile/[id]`) that showcases their current workload, completion stats, approval rating, and contribution history.
 
 ---
 
-## Tech Stack Overview
+## 🛠️ Technology Stack
 
-- **Frontend & Server Pages:** Next.js (App Router, Server Actions, styled with Vanilla CSS)
-- **Database & ORM:** PostgreSQL managed through Prisma ORM
-- **Authentication:** Supabase Auth for sessions and security checks
+- **Framework:** Next.js 16 (App Router & Server Actions)
+- **Styling:** Custom Vanilla CSS with CSS Variables (Themeable)
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **Authentication:** Supabase Auth (with Admin Service Keys for email invites)
+- **Icons:** Lucide React
 
 ---
 
-## Core Features
+## 🚀 Getting Started
 
-1. **Five-Tier Role Hierarchy:** Scoped permissions from President (Superuser) down to Team Members.
-2. **Task Lifecycle State Machine:** Strict transitions: `Open` ➜ `In Progress` ➜ `Pending Approval` ➜ `Completed` / `Rejected` (with comments).
-3. **No Self-Approval:** Assignees cannot approve their own submissions; approvals automatically escalate to a peer admin or manager.
-4. **Escalation Sweeper:** Automates review escalation of approval requests stalled longer than 3 days.
-5. **Private Contributor Profiles:** Shareable stats page displaying completed contributions, approval rating, and current workload. Accessible to logged-in members.
-6. **Audit Logs & Notifications:** Dense admin audit trail alongside contextual email and in-app alerts.
+To set up the project locally for development, you must configure your environment variables and database.
 
-For full developer instructions and database schema management details, please refer directly to [**`CONTRIBUTING.md`**](file:///D:/it_mgt/CONTRIBUTING.md).
+### 1. Environment Setup
+Copy the example file to create your `.env`:
+```bash
+cp .env.example .env
+```
+Fill in the following credentials:
+- `DATABASE_URL` and `DIRECT_URL` (From your Prisma/Postgres provider)
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (From Supabase Project Settings -> API)
+- `SUPABASE_SERVICE_ROLE_KEY` (Required for the invite-only onboarding flow)
+- `CRON_SECRET` (A custom secure string used to authenticate the automated escalation API)
+
+### 2. Database Initialization
+```bash
+npm install
+npx prisma db push
+npx prisma generate
+```
+
+### 3. Run the Development Server
+```bash
+npm run dev
+```
+Navigate to `http://localhost:3000`.
+
+---
+
+## 📖 Additional Documentation
+
+- For deep dives into the original business logic, rules, and schema definitions, please refer to [**`specification.md`**](./specification.md).
+- For further developer contribution guidelines, refer to [**`CONTRIBUTING.md`**](./CONTRIBUTING.md).

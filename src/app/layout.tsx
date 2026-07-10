@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ThemeInit } from "./ThemeInit";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -8,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "IT Avenue Task Management System",
-  description: "Advanced Task and Project Management Division Dashboard",
+  title: "Rotaract UoM — IT Division Task Management",
+  description: "IT Division Task Management System — Rotaract Club of University of Moratuwa",
 };
 
 export default function RootLayout({
@@ -19,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        <ThemeInit />
+        {children}
+      </body>
     </html>
   );
 }
