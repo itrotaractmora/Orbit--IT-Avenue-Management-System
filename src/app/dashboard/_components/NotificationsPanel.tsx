@@ -25,8 +25,10 @@ function NotificationItem({ n }: { n: any }) {
     textColor = 'var(--danger)'
   }
 
-  const dismiss = dismissNotification.bind(null, n.id)
-
+  const dismissAction = async () => {
+    'use server'
+    await dismissNotification(n.id)
+  }
   return (
     <div style={{
       display: 'flex',
@@ -72,7 +74,7 @@ function NotificationItem({ n }: { n: any }) {
           {n.type === 'TASK_OVERDUE' && `Task "${n.task?.title || 'Untitled'}" is overdue!`}
         </p>
       </div>
-      <form action={dismiss}>
+      <form action={dismissAction}>
         <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '12px' }} type="submit">
           Dismiss
         </button>
@@ -99,7 +101,7 @@ export function NotificationsPanel({ notifications }: { notifications: any[] }) 
           <span>Notifications</span>
           <span className="badge" style={{ backgroundColor: 'var(--primary)', color: 'white' }}>{notifications.length}</span>
         </h3>
-        <form action={dismissAllNotifications}>
+        <form action={async () => { 'use server'; await dismissAllNotifications(); }}>
           <button className="btn btn-ghost" style={{ fontSize: '12px', padding: '4px 8px' }}>
             <Check size={14} style={{ marginRight: '4px' }} />
             Dismiss All

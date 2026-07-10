@@ -56,8 +56,8 @@ export async function createTask(prevState: any, formData: FormData) {
     return { error: 'Unauthorized' }
   }
 
-  // Permitted to create tasks: Senior Director, Co-Director, Team Lead (scoped to team)
-  const canCreate = ([UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR, UserRole.TEAM_LEAD] as UserRole[]).includes(actor.role)
+  // Permitted to create tasks: President, Senior Director, Co-Director, Team Lead (scoped to team)
+  const canCreate = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR, UserRole.TEAM_LEAD] as UserRole[]).includes(actor.role)
   if (!canCreate) {
     return { error: 'Unauthorized. You do not have permission to create tasks.' }
   }
@@ -135,6 +135,119 @@ export async function createTask(prevState: any, formData: FormData) {
     return { success: 'Task created successfully!' }
   } catch (error: any) {
     return { error: `Failed to create task: ${error.message}` }
+  }
+}
+
+export async function updateTaskAction(prevState: any, formData: FormData) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  const taskId = formData.get('taskId') as string
+  const title = formData.get('title') as string
+  const description = formData.get('description') as string
+  const priority = formData.get('priority') as TaskPriority
+  const status = formData.get('status') as TaskStatus
+  const projectId = formData.get('projectId') as string || null
+  const assignedToId = formData.get('assignedToId') as string || null
+  const dueDateStr = formData.get('dueDate') as string
+
+  if (!taskId || !title) {
+    return { error: 'Task ID and title are required' }
+  }
+
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId }
+  })
+
+  if (!existingTask) {
+    return { error: 'Task not found' }
+  }
+
+  // Permissions: Admin tier or Creator
+  const isAdminTier = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)
+  const isCreator = existingTask.createdById === actor.id
+  
+  if (!isAdminTier && !isCreator && actor.role !== UserRole.TEAM_LEAD) {
+    return { error: 'You do not have permission to edit this task.' }
+  }
+
+  try {
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        title,
+        description: description || null,
+        priority,
+        status,
+        projectId: projectId || null,
+        assignedToId: assignedToId || null,
+        dueDate: dueDateStr ? new Date(dueDateStr) : null,
+      }
+    })
+
+    // Log to Audit Trail
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'Task',
+        entityId: updatedTask.id,
+        action: 'UPDATED',
+        actorId: actor.id
+      }
+    })
+
+    revalidatePath('/dashboard')
+    revalidatePath('/tasks')
+    revalidatePath(`/task/${taskId}`)
+    return { success: 'Task updated successfully!' }
+  } catch (error: any) {
+    console.error('Update task error:', error)
+    return { error: `Failed to update task: ${error.message}` }
+  }
+}
+
+export async function deleteTaskAction(taskId: string) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId }
+  })
+
+  if (!existingTask) {
+    return { error: 'Task not found' }
+  }
+
+  const isAdminTier = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)
+  const isCreator = existingTask.createdById === actor.id
+  
+  if (!isAdminTier && !isCreator && actor.role !== UserRole.TEAM_LEAD) {
+    return { error: 'You do not have permission to delete this task.' }
+  }
+
+  try {
+    await prisma.notification.deleteMany({ where: { taskId } })
+    await prisma.approval.deleteMany({ where: { taskId } })
+    await prisma.task.delete({ where: { id: taskId } })
+
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'Task',
+        entityId: taskId,
+        action: 'DELETED', // custom action representing deletion
+        actorId: actor.id
+      }
+    })
+
+    revalidatePath('/dashboard')
+    revalidatePath('/tasks')
+    return { success: 'Task deleted successfully!' }
+  } catch (error: any) {
+    console.error('Delete task error:', error)
+    return { error: `Failed to delete task: ${error.message}` }
   }
 }
 
@@ -442,7 +555,7 @@ export async function getTasks() {
   if (([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)) {
     return prisma.task.findMany({
       include: {
-        project: true,
+        project: { include: { members: true } },
         assignee: true,
         creator: true,
         approver: true,
@@ -453,16 +566,20 @@ export async function getTasks() {
   }
 
   // Team Leads see team tasks (projects overseen by their team) or standalone tasks created by/assigned to team members
-  if (actor.role === UserRole.TEAM_LEAD && actor.teamId) {
+  if (actor.role === UserRole.TEAM_LEAD) {
+    const orConditions: any[] = [
+      { project: { members: { some: { id: actor.id } } } },
+      { assignedToId: actor.id }, // Make sure they at least see their own
+      { createdById: actor.id }
+    ]
+    if (actor.teamId) {
+      orConditions.push({ project: { teamId: actor.teamId } })
+      orConditions.push({ assignee: { teamId: actor.teamId } })
+    }
     return prisma.task.findMany({
-      where: {
-        OR: [
-          { project: { teamId: actor.teamId } },
-          { assignee: { teamId: actor.teamId } }
-        ]
-      },
+      where: { OR: orConditions },
       include: {
-        project: true,
+        project: { include: { members: true } },
         assignee: true,
         creator: true,
         approver: true,
@@ -474,16 +591,18 @@ export async function getTasks() {
 
   // Members see their assigned tasks and open claimable tasks matching their team
   if (actor.role === UserRole.MEMBER) {
+    const orConditions: any[] = [
+      { assignedToId: actor.id },
+      { status: TaskStatus.OPEN, project: { members: { some: { id: actor.id } } } },
+      { status: TaskStatus.OPEN, projectId: null } // general standalone open tasks
+    ]
+    if (actor.teamId) {
+      orConditions.push({ status: TaskStatus.OPEN, project: { teamId: actor.teamId } })
+    }
     return prisma.task.findMany({
-      where: {
-        OR: [
-          { assignedToId: actor.id },
-          { status: TaskStatus.OPEN, project: { teamId: actor.teamId } },
-          { status: TaskStatus.OPEN, projectId: null } // general standalone open tasks
-        ]
-      },
+      where: { OR: orConditions },
       include: {
-        project: true,
+        project: { include: { members: true } },
         assignee: true,
         creator: true,
         approver: true,

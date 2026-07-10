@@ -4,9 +4,12 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { loginAction } from '@/actions/authActions'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
+  const searchParams = useSearchParams()
+  const authError = searchParams.get('error')
 
   return (
     <div style={{
@@ -48,6 +51,20 @@ export default function LoginPage() {
             <p className="body-text" style={{ fontSize: '13px', marginTop: '2px', textAlign: 'center' }}>IT Division — Sign in to your account</p>
           </div>
         </div>
+
+        {authError && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            color: 'var(--danger)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            textAlign: 'center',
+            marginBottom: 'var(--spacing-16)',
+          }}>
+            {decodeURIComponent(authError)}
+          </div>
+        )}
 
         <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">

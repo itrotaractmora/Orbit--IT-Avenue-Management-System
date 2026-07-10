@@ -1,7 +1,6 @@
 datasource db {
   provider  = "postgresql"
 }
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -46,6 +45,12 @@ enum ApprovalDecision {
   REJECTED
 }
 
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum NotificationType {
   TASK_ASSIGNED
   APPROVAL_NEEDED
@@ -56,6 +61,7 @@ enum NotificationType {
 model User {
   id             String         @id @default(uuid()) @db.Uuid
   name           String
+  avatarUrl      String?
   email          String         @unique
   role           UserRole       @default(MEMBER)
   teamId         String?        @db.Uuid
@@ -69,12 +75,15 @@ model User {
   manager        User?          @relation("UserManager", fields: [managerId], references: [id])
   subordinates   User[]         @relation("UserManager")
   
-  createdProjects Project[]     @relation("ProjectCreator")
-  createdTasks    Task[]        @relation("TaskCreator")
-  assignedTasks   Task[]        @relation("TaskAssignee")
-  approvedTasks   Task[]        @relation("TaskApprover")
-  decidedApprovals Approval[]
-  notifications   Notification[]
+  // Relations
+  createdProjects Project[]       @relation("ProjectCreator")
+  assignedTasks  Task[]          @relation("TaskAssignee")
+  createdTasks   Task[]          @relation("TaskCreator")
+  approvedTasks  Task[]          @relation("TaskApprover")
+  approvals      Approval[]
+  notifications  Notification[]
+  memberOfProjects Project[]     @relation("ProjectMembers")
+  joinRequests   JoinRequest[]
   
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -107,6 +116,8 @@ model Project {
   creator     User          @relation("ProjectCreator", fields: [createdById], references: [id])
   team        Team?         @relation(fields: [teamId], references: [id])
   tasks       Task[]
+  members     User[]        @relation("ProjectMembers")
+  joinRequests JoinRequest[]
   
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -169,4 +180,17 @@ model Notification {
   // Relations
   user      User             @relation(fields: [userId], references: [id])
   task      Task?            @relation(fields: [taskId], references: [id])
+}
+
+model JoinRequest {
+  id          String            @id @default(uuid()) @db.Uuid
+  projectId   String            @db.Uuid
+  userId      String            @db.Uuid
+  status      JoinRequestStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  // Relations
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

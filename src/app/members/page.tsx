@@ -2,8 +2,9 @@ import { prisma } from '@/utils/prisma'
 import { getSessionUser } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users } from 'lucide-react'
-import { UserRole } from '@prisma/client'
+import { ArrowLeft, Users, UserMinus } from 'lucide-react'
+import { UserRole, UserStatus } from '@prisma/client'
+import { deactivateUserAction } from '@/actions/userActions'
 
 export default async function MembersPage() {
   const sessionUser = await getSessionUser()
@@ -11,8 +12,11 @@ export default async function MembersPage() {
     redirect('/login')
   }
 
+  const isAdmin = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(sessionUser.role)
+
   // Fetch users based on hierarchy
   let users = await prisma.user.findMany({
+    where: { status: UserStatus.ACTIVE },
     include: { team: true },
     orderBy: { role: 'asc' }
   })
@@ -81,10 +85,17 @@ export default async function MembersPage() {
                 </td>
                 <td className="body-text">{u.team?.name || 'No Team Assigned'}</td>
                 <td className="body-text">{u.email}</td>
-                <td>
+                <td style={{ display: 'flex', gap: '8px' }}>
                   <Link href={`/profile/${u.id}`} className="btn btn-secondary" style={{ fontSize: '12px', padding: '4px 12px', height: 'auto' }}>
                     View Profile
                   </Link>
+                  {isAdmin && u.role !== UserRole.PRESIDENT && u.id !== sessionUser.id && (
+                    <form action={async () => { 'use server'; await deactivateUserAction(u.id) }}>
+                      <button type="submit" className="btn" style={{ fontSize: '12px', padding: '4px 12px', height: 'auto', backgroundColor: 'var(--danger)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <UserMinus size={14} /> Deactivate
+                      </button>
+                    </form>
+                  )}
                 </td>
               </tr>
             ))}

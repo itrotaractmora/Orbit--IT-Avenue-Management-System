@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { TaskStatus } from '@prisma/client'
 import { TaskStatusBadge } from './TaskStatusBadge'
-import { reassignTask } from '@/actions/taskActions'
+import { reassignTask, deleteTaskAction } from '@/actions/taskActions'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, Pencil, Trash2 } from 'lucide-react'
 
 interface TasksOversightTableProps {
   tasks: any[]
@@ -102,7 +102,7 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
               <th>Assignee</th>
               <th>Project</th>
               <th>Status</th>
-              <th>Reassign</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -173,17 +173,29 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
                     <TaskStatusBadge status={t.status} />
                   </td>
                   <td>
-                    <form onSubmit={(e) => handleReassign(t.id, e)} style={{ display: 'flex', gap: '4px' }}>
-                      <select className="form-select" name="assigneeId" style={{ height: '32px', padding: '4px', fontSize: '12px', width: '130px' }}>
-                        <option value="">Select user...</option>
-                        {users.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </select>
-                      <button className="btn btn-secondary" style={{ height: '32px', padding: '0 8px', fontSize: '12px', borderRadius: '8px' }} type="submit">
-                        Assign
-                      </button>
-                    </form>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <form onSubmit={(e) => handleReassign(t.id, e)} style={{ display: 'flex', gap: '4px' }}>
+                        <select className="form-select" name="assigneeId" style={{ height: '32px', padding: '4px', fontSize: '12px', width: '130px' }}>
+                          <option value="">Select user...</option>
+                          {users.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                        <button className="btn btn-secondary" style={{ height: '32px', padding: '0 8px', fontSize: '12px', borderRadius: '8px' }} type="submit">
+                          Assign
+                        </button>
+                      </form>
+                      
+                      <Link href={`/dashboard?action=edit-task-${t.id}`} className="btn btn-secondary" style={{ height: '32px', padding: '0 8px', fontSize: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Pencil size={14} /> Edit
+                      </Link>
+                      
+                      <form action={async () => { await deleteTaskAction(t.id) }}>
+                        <button type="submit" className="btn" style={{ height: '32px', padding: '0 8px', fontSize: '12px', borderRadius: '8px', backgroundColor: 'var(--danger)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               )

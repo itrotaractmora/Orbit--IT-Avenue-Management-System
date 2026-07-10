@@ -22,9 +22,12 @@ import { QuickActions } from './_components/QuickActions'
 
 // Modals
 import { OnboardModal } from './_components/modals/OnboardModal'
+import { ProjectJoinRequestsTable } from './_components/ProjectJoinRequestsTable'
+import { JoinRequestStatus } from '@prisma/client'
 import { CreateTeamModal } from './_components/modals/CreateTeamModal'
 import { CreateProjectModal } from './_components/modals/CreateProjectModal'
 import { CreateTaskModal } from './_components/modals/CreateTaskModal'
+import { EditTaskModal } from './_components/modals/EditTaskModal'
 
 interface PageProps {
   searchParams: Promise<{ action?: string }>
@@ -48,7 +51,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const isAdminTier = isExecutive || isCoDirector // Used for some basic UI logic
 
   // Fetch all necessary data in parallel
-  const [allUsers, allTeams, allProjects, allTasks, notifications, auditLogs] = await Promise.all([
+  const [allUsers, allTeams, allProjects, allTasks, notifications, auditLogs, pendingJoinRequests] = await Promise.all([
     getUsers(),
     getTeams(),
     getProjects(),
@@ -58,7 +61,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       include: { task: true },
       orderBy: { createdAt: 'desc' }
     }),
-    isExecutive ? prisma.auditLog.findMany({ take: 8, orderBy: { timestamp: 'desc' } }) : Promise.resolve([])
+    isExecutive ? prisma.auditLog.findMany({ take: 8, orderBy: { timestamp: 'desc' } }) : Promise.resolve([]),
+    isAdminTier ? prisma.joinRequest.findMany({ where: { status: JoinRequestStatus.PENDING }, include: { user: true, project: true }, orderBy: { createdAt: 'desc' } }) : Promise.resolve([])
   ])
 
   // Filter data based on Role Hierarchy
@@ -72,6 +76,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     visibleTasks = allTasks.filter(t => 
       t.status === TaskStatus.OPEN || 
       (t.project?.teamId === user.teamId) || 
+      (t.project?.members?.some((m: any) => m.id === user.id)) ||
       t.assignedToId === user.id || 
       t.createdById === user.id
     )
@@ -163,6 +168,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         
         {/* LEFT COLUMN: Approvals & Tasks Lists */}
         <div className="col-8" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-32)' }}>
+          {isAdminTier && <ProjectJoinRequestsTable requests={pendingJoinRequests} />}
           <ApprovalsTable approvals={myPendingApprovals} userId={user.id} />
           <ClaimableTasksQueue tasks={claimableTasks} />
           
@@ -189,6 +195,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <CreateProjectModal action={action} isAdminTier={isAdminTier} teams={visibleTeams} />
       <CreateTaskModal action={action} isAdminTier={isAdminTier} isTeamLead={isTeamLead} userTeamId={user.teamId} projects={visibleProjects} users={allUsers} />
       
+      {action?.startsWith('edit-task-') && (
+        <EditTaskModal 
+          action={action} 
+          task={allTasks.find(t => t.id === action.replace('edit-task-', ''))} 
+          projects={visibleProjects} 
+          users={allUsers} 
+        />
+      )}
     </div>
   )
 }
