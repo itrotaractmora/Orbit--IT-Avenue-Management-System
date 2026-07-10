@@ -199,4 +199,4 @@ Trigger a notification (in-app + optional email) on:
 - **Stack:** any standard web stack works (e.g., React/Vue frontend, Node/Django/Rails backend, Postgres). Role-based access control (RBAC) middleware should check permissions against the matrix in Section 2 on every request, not just hide UI elements.
 - **Phase 1 (MVP):** user roles, project/task CRUD, claim/submit/approve flow, basic dashboard per role.
 - **Phase 2:** notifications, escalation timeouts, audit log, contribution analytics.
-- **Phase 3:** reporting exports, cross-team comparisons, integrations (email/Slack notifications).
+- **Phase 3 (Fully Implemented):** Reporting exports (CSV), manual task reassignments, user profile contribution dashboards (`/profile/[id]`), and automated cron API task escalations.
