@@ -35,13 +35,17 @@ export default function LoginPage() {
             justifyContent: 'center',
             marginBottom: 'var(--spacing-8)'
           }}>
-            <Image
+            <img
               src="/rotaract-logo.png"
               alt="Rotaract University of Moratuwa"
-              width={220}
-              height={72}
               style={{ objectFit: 'contain', width: '220px', height: 'auto' }}
-              priority
+              className="logo-light"
+            />
+            <img
+              src="/rotaract-logo-dark.png"
+              alt="Rotaract University of Moratuwa"
+              style={{ objectFit: 'contain', width: '220px', height: 'auto' }}
+              className="logo-dark"
             />
           </div>
           <div>

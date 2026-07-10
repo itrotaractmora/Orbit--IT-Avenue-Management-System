@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { FolderOpen } from 'lucide-react'
 import { ProjectStatus } from '@prisma/client'
 import { updateProjectStatus } from '@/actions/projectActions'
@@ -18,7 +19,7 @@ export function ProjectsList({ projects, isAdmin }: { projects: any[], isAdmin: 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           {projects.map(p => (
             <div key={p.id} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 'var(--spacing-12)' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--on-surface)' }}>{p.title}</div>
+              <Link href={`/project/${p.id}`} style={{ fontWeight: 600, fontSize: '14px', color: 'var(--primary)', textDecoration: 'none' }}>{p.title}</Link>
               <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>{p.description}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-8)' }}>
                 <span className={`chip chip-${

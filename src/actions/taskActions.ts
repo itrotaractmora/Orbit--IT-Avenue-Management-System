@@ -155,12 +155,6 @@ export async function claimTask(taskId: string) {
     return { error: 'Task is not available for claiming.' }
   }
 
-  // Team Leads and Members can only claim tasks within their own team (if assigned to a team)
-  if (([UserRole.TEAM_LEAD, UserRole.MEMBER] as UserRole[]).includes(actor.role)) {
-    if (task.project && task.project.teamId && task.project.teamId !== actor.teamId) {
-      return { error: 'You can only claim tasks assigned to your team.' }
-    }
-  }
 
   try {
     await prisma.task.update({

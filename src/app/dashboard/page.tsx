@@ -5,6 +5,7 @@ import { getProjects } from '@/actions/projectActions'
 import { getTasks, escalateStalledTasks } from '@/actions/taskActions'
 import { UserRole, TaskStatus } from '@prisma/client'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { Clock } from 'lucide-react'
 
@@ -67,9 +68,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   if (isTeamLead || isMember) {
     visibleTeams = allTeams.filter(t => t.id === user.teamId)
-    visibleProjects = allProjects.filter(p => p.teamId === user.teamId)
-    // Team Lead / Member sees tasks for their team + their own assigned/created tasks
-    visibleTasks = allTasks.filter(t => (t.project?.teamId === user.teamId) || t.assignedToId === user.id || t.createdById === user.id)
+    // Team Lead / Member sees their own tasks, their team's tasks, AND any OPEN task division-wide
+    visibleTasks = allTasks.filter(t => 
+      t.status === TaskStatus.OPEN || 
+      (t.project?.teamId === user.teamId) || 
+      t.assignedToId === user.id || 
+      t.createdById === user.id
+    )
   }
 
   // Metric Computations (Based on visible tasks)
@@ -122,14 +127,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <p className="body-text" style={{ marginTop: '4px' }}>Welcome back, {user.name}. Here is your task oversight for today.</p>
         </div>
         
-        {isExecutive && (
-          <form action={handleEscalations}>
-            <button className="btn btn-secondary" style={{ display: 'flex', gap: 'var(--spacing-8)', height: '40px' }} type="submit">
-              <Clock size={16} />
-              <span>Run Escalations</span>
-            </button>
-          </form>
-        )}
+        <div style={{ display: 'flex', gap: 'var(--spacing-12)', alignItems: 'center' }}>
+          <Link href="/members" className="btn btn-secondary" style={{ height: '36px', fontSize: '13px' }}>
+            All Members
+          </Link>
+          <Link href="/projects" className="btn btn-secondary" style={{ height: '36px', fontSize: '13px' }}>
+            All Projects
+          </Link>
+          {isExecutive && (
+            <form action={handleEscalations}>
+              <button className="btn btn-secondary" style={{ display: 'flex', gap: 'var(--spacing-8)', height: '36px', fontSize: '13px' }} type="submit">
+                <Clock size={16} />
+                <span>Run Escalations</span>
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       <NotificationsPanel notifications={notifications} />
