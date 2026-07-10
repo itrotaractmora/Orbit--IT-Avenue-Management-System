@@ -118,7 +118,9 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
               return (
                 <tr key={t.id}>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--on-surface)' }}>{t.title}</div>
+                    <Link href={`/task/${t.id}`} style={{ fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }} className="hover-underline">
+                      {t.title}
+                    </Link>
                     <div style={{ fontSize: '11px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>Priority: {t.priority}</div>
                     {t.status === TaskStatus.REJECTED && rejectionComment && (
                       <div style={{

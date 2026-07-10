@@ -18,10 +18,15 @@ A modern, highly-performant, role-scoped task and project management system desi
 - **Automated Escalations:** Includes a secure API cron-trigger (`/api/cron/escalate`) that automatically sweeps for stalled approvals and escalates them up the leadership chain.
 
 ### 🎨 Modern UI & Experience
+- **Interactive Kanban Board:** A fully functional, drag-and-drop Kanban Board (`/dashboard/board`) powered by HTML5 Drag and Drop API allows seamless task progression across columns.
+- **Task Comments & Collaboration:** Dedicated task detail pages feature real-time activity feeds where members can comment, collaborate, and discuss task specifics.
 - **Fluid & Responsive:** Built from the ground up without heavy CSS frameworks. Utilizes native CSS variables, flexbox, and grid layouts. Features a sliding mobile drawer for smaller screens.
 - **Dark Mode Integration:** Native, flicker-free dark mode toggle using `next-themes` style implementations.
 - **Parallel Fetching:** Dashboard data (Tasks, Projects, Users, Notifications, Audit Logs) are all fetched asynchronously using `Promise.all()`, ensuring blazing-fast initial load times.
 - **Data Exporting:** Built-in "Export CSV" functionality for executives to quickly download oversight tables for meetings.
+
+### 🐳 Docker & Deployment
+- **Standalone Docker Build:** Fully containerized using Next.js standalone output mode for a minimal footprint. Includes a multi-stage `Dockerfile` ready for robust CI/CD integration.
 
 ### 👤 Member Profiles
 - **Shareable Portfolios:** Every user has a dedicated, shareable profile page (e.g., `/profile/[id]`) that showcases their current workload, completion stats, approval rating, and contribution history.
