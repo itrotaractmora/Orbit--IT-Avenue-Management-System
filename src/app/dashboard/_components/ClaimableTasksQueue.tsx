@@ -1,4 +1,5 @@
 import { Users } from 'lucide-react'
+import Link from 'next/link'
 import { claimTask } from '@/actions/taskActions'
 import { OverdueBadge } from './OverdueBadge'
 
@@ -25,7 +26,9 @@ export function ClaimableTasksQueue({ tasks }: { tasks: any[] }) {
             {tasks.map(t => (
               <tr key={t.id}>
                 <td>
-                  <div style={{ fontWeight: 600, color: 'var(--on-surface)' }}>{t.title}</div>
+                  <Link href={`/task/${t.id}`} style={{ fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }} className="hover-underline">
+                    {t.title}
+                  </Link>
                   <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>{t.description}</div>
                 </td>
                 <td className="body-text">{t.project ? t.project.title : 'General Task'}</td>

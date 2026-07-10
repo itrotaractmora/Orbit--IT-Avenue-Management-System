@@ -1,7 +1,7 @@
 import { getSessionUser, logoutAction } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, User, LogOut, Settings } from 'lucide-react'
+import { LayoutDashboard, User, LogOut, Settings, KanbanSquare } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Image from 'next/image'
 import { NavLink } from './_components/NavLink'
@@ -88,6 +88,10 @@ export default async function DashboardLayout({
                 <NavLink href="/dashboard" exact>
                   <LayoutDashboard size={18} />
                   <span>Dashboard</span>
+                </NavLink>
+                <NavLink href="/dashboard/board">
+                  <KanbanSquare size={18} />
+                  <span>Kanban Board</span>
                 </NavLink>
               </nav>
             </div>
