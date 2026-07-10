@@ -68,9 +68,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   if (isTeamLead || isMember) {
     visibleTeams = allTeams.filter(t => t.id === user.teamId)
-    visibleProjects = allProjects.filter(p => p.teamId === user.teamId)
-    // Team Lead / Member sees tasks for their team + their own assigned/created tasks
-    visibleTasks = allTasks.filter(t => (t.project?.teamId === user.teamId) || t.assignedToId === user.id || t.createdById === user.id)
+    // Team Lead / Member sees their own tasks, their team's tasks, AND any OPEN task division-wide
+    visibleTasks = allTasks.filter(t => 
+      t.status === TaskStatus.OPEN || 
+      (t.project?.teamId === user.teamId) || 
+      t.assignedToId === user.id || 
+      t.createdById === user.id
+    )
   }
 
   // Metric Computations (Based on visible tasks)
