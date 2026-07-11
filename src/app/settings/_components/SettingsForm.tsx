@@ -7,9 +7,10 @@ interface SettingsFormProps {
   submitLabel: string
   requireConfirmation?: string
   children: React.ReactNode
+  disabled?: boolean
 }
 
-export function SettingsForm({ action, submitLabel, requireConfirmation, children }: SettingsFormProps) {
+export function SettingsForm({ action, submitLabel, requireConfirmation, children, disabled = false }: SettingsFormProps) {
   const [state, formAction, isPending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -46,7 +47,7 @@ export function SettingsForm({ action, submitLabel, requireConfirmation, childre
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
-        <button type="submit" className="btn btn-primary" disabled={isPending}>
+        <button type="submit" className="btn btn-primary" disabled={isPending || disabled}>
           {isPending ? 'Saving...' : submitLabel}
         </button>
       </div>

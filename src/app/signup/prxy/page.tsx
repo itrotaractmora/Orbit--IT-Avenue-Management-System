@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { signupAction, resendSignupOtpAction } from '@/actions/authActions'
 import Image from 'next/image'
 import { PasswordInput } from '@/components/PasswordInput'
+import { PasswordChecker } from '@/components/PasswordChecker'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -23,6 +24,11 @@ export default function SignupProxyPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendSuccess, setResendSuccess] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
+
+  // Password validation states
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isPasswordValid, setIsPasswordValid] = useState(false)
 
   useEffect(() => {
     const email = sessionStorage.getItem('signup_allowed_email')
@@ -381,6 +387,8 @@ export default function SignupProxyPage() {
                   required
                   placeholder="••••••••"
                   autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
@@ -392,8 +400,16 @@ export default function SignupProxyPage() {
                   required
                   placeholder="••••••••"
                   autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
+
+              <PasswordChecker
+                password={password}
+                confirmPassword={confirmPassword}
+                onValidate={setIsPasswordValid}
+              />
 
               {state?.error && (
                 <div className="chip chip-danger" style={{
@@ -414,7 +430,7 @@ export default function SignupProxyPage() {
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: 'var(--spacing-8)' }}
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || !isPasswordValid}
               >
                 {isPending ? 'Registering...' : 'Register Profile'}
               </button>
