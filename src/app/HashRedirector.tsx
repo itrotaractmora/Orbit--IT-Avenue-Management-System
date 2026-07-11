@@ -11,11 +11,12 @@ export function HashRedirector({ fallbackPath = '/login' }: { fallbackPath?: str
     const hash = window.location.hash
 
     if (hash && hash.includes('access_token')) {
-      // Supabase invite link with tokens in hash fragment
+      // Supabase link with tokens in hash fragment
       const supabase = createClient()
       const hashParams = new URLSearchParams(hash.substring(1))
       const accessToken = hashParams.get('access_token')!
       const refreshToken = hashParams.get('refresh_token')!
+      const type = hashParams.get('type')
 
       supabase.auth.setSession({
         access_token: accessToken,
@@ -25,8 +26,17 @@ export function HashRedirector({ fallbackPath = '/login' }: { fallbackPath?: str
           console.error('Failed to set session from hash:', error.message)
           router.replace(fallbackPath)
         } else {
-          // Session set! Redirect to set password page
-          router.replace('/update-password')
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            const isSelfSigned = user?.user_metadata?.self_signed === true || type === 'signup'
+            if (isSelfSigned) {
+              supabase.auth.signOut().then(() => {
+                router.replace('/login?confirmed=true')
+              })
+            } else {
+              // Session set! Redirect to set password page
+              router.replace('/update-password')
+            }
+          })
         }
       })
     } else if (hash && hash.includes('error=')) {

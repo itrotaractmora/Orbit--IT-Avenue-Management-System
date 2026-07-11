@@ -29,7 +29,7 @@ export async function loginAction(prevState: any, formData: FormData) {
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
-    
+
     if (existingUser && existingUser.id !== sbUser.id) {
       try {
         await prisma.$executeRaw`
@@ -50,10 +50,28 @@ export async function loginAction(prevState: any, formData: FormData) {
 export async function signupAction(prevState: any, formData: FormData) {
   const name = formData.get('name') as string
   const email = formData.get('email') as string
+  const role = formData.get('role') as UserRole
   const password = formData.get('password') as string
+  const confirmPassword = formData.get('confirmPassword') as string
 
-  if (!name || !email || !password) {
-    return { error: 'Name, email, and password are required' }
+  if (!name || !email || !role || !password || !confirmPassword) {
+    return { error: 'Name, email, role, password, and confirm password are required' }
+  }
+
+  if (password !== confirmPassword) {
+    return { error: 'Passwords do not match' }
+  }
+
+  if (password.length < 6) {
+    return { error: 'Password must be at least 6 characters' }
+  }
+
+  if (!email.endsWith('rotaractmora@gmail.com')) {
+    return { error: 'Registration is restricted to rotaractmora@gmail.com emails' }
+  }
+
+  if (role !== UserRole.PRESIDENT && role !== UserRole.SENIOR_DIRECTOR && role !== UserRole.CO_DIRECTOR) {
+    return { error: 'Invalid role selected. Must be President, Senior Director, or Co-director.' }
   }
 
   const supabase = await createClient()
@@ -64,11 +82,47 @@ export async function signupAction(prevState: any, formData: FormData) {
     options: {
       data: {
         name,
+        self_signed: true,
       },
     },
   })
 
   if (error) {
+    const isAlreadyRegistered =
+      error.message?.toLowerCase().includes('already registered') ||
+      error.message?.toLowerCase().includes('already exists') ||
+      error.status === 400;
+
+    if (isAlreadyRegistered) {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+
+      if (resendError) {
+        return { error: resendError.message || error.message }
+      }
+
+      // Sync name & role to database if they exist in Prisma
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      })
+      if (existingUser) {
+        try {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              name,
+              role,
+            }
+          })
+        } catch (dbError) {
+          console.error('Failed to update profile during resend:', dbError)
+        }
+      }
+
+      return { success: true, email }
+    }
     return { error: error.message }
   }
 
@@ -88,6 +142,7 @@ export async function signupAction(prevState: any, formData: FormData) {
           UPDATE "User"
           SET id = ${sbUser.id}::uuid,
               name = ${name},
+              role = ${role}::"UserRole",
               status = ${UserStatus.ACTIVE}::"UserStatus"
           WHERE id = ${existingUser.id}::uuid
         `;
@@ -96,19 +151,18 @@ export async function signupAction(prevState: any, formData: FormData) {
           where: { id: sbUser.id },
           data: {
             name,
+            role,
             status: UserStatus.ACTIVE,
           }
         });
       }
     } else {
-      const userCount = await prisma.user.count()
-      const assignedRole = userCount === 0 ? UserRole.PRESIDENT : UserRole.MEMBER
       await prisma.user.create({
         data: {
           id: sbUser.id,
           name,
           email,
-          role: assignedRole,
+          role,
           status: UserStatus.ACTIVE,
         },
       })
@@ -117,7 +171,7 @@ export async function signupAction(prevState: any, formData: FormData) {
     return { error: `Database profile sync failed: ${dbError.message}` }
   }
 
-  redirect('/dashboard')
+  return { success: true, email }
 }
 
 export async function logoutAction() {

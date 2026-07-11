@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isProfileRoute = path.startsWith('/profile/')
-  const isAuthRoute = path === '/login' || path === '/signup'
+  const isAuthRoute = path === '/login' || path === '/signup' || path.startsWith('/signup/')
   const isInviteRoute = path.startsWith('/auth/') || path === '/update-password'
 
   if (!user && !isProfileRoute && !isAuthRoute && !isInviteRoute && path !== '/') {
@@ -55,9 +55,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    const searchParams = request.nextUrl.searchParams
+    if (searchParams.get('confirmed') === 'true') {
+      await supabase.auth.signOut()
+    } else {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

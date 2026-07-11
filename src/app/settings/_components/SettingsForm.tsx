@@ -16,7 +16,7 @@ export function SettingsForm({ action, submitLabel, requireConfirmation, childre
   useEffect(() => {
     if (state?.success && formRef.current) {
       // Clear password fields on success
-      const passwordInputs = formRef.current.querySelectorAll('input[type="password"]')
+      const passwordInputs = formRef.current.querySelectorAll('input[type="password"], input[name="password"], input[name="confirmPassword"]')
       passwordInputs.forEach((input: any) => {
         input.value = ''
       })

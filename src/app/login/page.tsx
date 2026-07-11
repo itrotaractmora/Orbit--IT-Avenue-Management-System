@@ -1,15 +1,17 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, Suspense } from 'react'
 import Link from 'next/link'
 import { loginAction } from '@/actions/authActions'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { PasswordInput } from '@/components/PasswordInput'
 
-export default function LoginPage() {
+function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
   const searchParams = useSearchParams()
   const authError = searchParams.get('error')
+  const isConfirmed = searchParams.get('confirmed') === 'true'
 
   return (
     <div style={{
@@ -52,17 +54,32 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {isConfirmed && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            color: 'var(--success, #10b981)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '8px',
+            fontSize: '14px',
+            textAlign: 'center',
+            marginBottom: 'var(--spacing-16)'
+          }}>
+            Email verified successfully! You can now log in.
+          </div>
+        )}
+
         {authError && (
           <div style={{
             padding: '12px',
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             color: 'var(--danger)',
             borderRadius: '8px',
-            fontSize: '13px',
+            fontSize: '14px',
             textAlign: 'center',
-            marginBottom: 'var(--spacing-16)',
+            marginBottom: 'var(--spacing-16)'
           }}>
-            {decodeURIComponent(authError)}
+            {authError === 'otp_expired' ? 'Your email link has expired. Please sign in again.' : 'Authentication failed.'}
           </div>
         )}
 
@@ -82,11 +99,9 @@ export default function LoginPage() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="password">Password</label>
-            <input
-              className="form-input"
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               required
               placeholder="••••••••"
               autoComplete="current-password"
@@ -118,13 +133,38 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-24)', fontSize: '13px' }}>
-          <span style={{ color: 'var(--on-surface-variant)' }}>Don't have an account? </span>
-          <Link href="/signup" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
-            Create one
-          </Link>
-        </div>
+
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: 'var(--background)',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid var(--primary)',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <p className="body-text" style={{ color: 'var(--on-surface-variant)' }}>Loading...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

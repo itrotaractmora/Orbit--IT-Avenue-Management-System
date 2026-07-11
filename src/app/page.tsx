@@ -7,7 +7,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ [key: s
   const searchParams = await props.searchParams
   const code = searchParams?.code
   if (code && typeof code === 'string') {
-    redirect(`/auth/callback?code=${code}&next=/update-password`)
+    redirect(`/auth/callback?code=${code}`)
   }
 
   const user = await getSessionUser()

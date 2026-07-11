@@ -3,6 +3,7 @@ import { TaskStatus } from '@prisma/client'
 import { submitTask, dropClaim } from '@/actions/taskActions'
 import { TaskStatusBadge } from './TaskStatusBadge'
 import { OverdueBadge } from './OverdueBadge'
+import Link from 'next/link'
 
 export function MyTasksBoard({ myTasks }: { myTasks: any[] }) {
   return (

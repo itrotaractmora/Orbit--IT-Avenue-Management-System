@@ -856,3 +856,39 @@ h3, .card-title {
     padding-top: 60px; /* space for mobile header */
   }
 }
+
+/* Password Toggle CSS */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 40px !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-input);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--on-surface);
+  background-color: var(--primary-light);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+}

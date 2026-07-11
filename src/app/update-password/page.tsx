@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { updatePasswordAction } from '@/actions/authActions'
+import { PasswordInput } from '@/components/PasswordInput'
 
 const initialState = {
   error: null as string | null
@@ -29,26 +30,22 @@ export default function UpdatePasswordPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label htmlFor="password" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--on-surface)' }}>New Password</label>
-            <input
-              type="password"
+            <PasswordInput
               id="password"
               name="password"
               required
               minLength={6}
-              className="form-input"
               style={{ width: '100%' }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label htmlFor="confirmPassword" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--on-surface)' }}>Confirm Password</label>
-            <input
-              type="password"
+            <PasswordInput
               id="confirmPassword"
               name="confirmPassword"
               required
               minLength={6}
-              className="form-input"
               style={{ width: '100%' }}
             />
           </div>

@@ -4,6 +4,7 @@ import { updateProfileAction, updateEmailAction, updatePasswordAction } from '@/
 import Link from 'next/link'
 import { ArrowLeft, User as UserIcon, Mail, Lock, Shield, Settings, Image as ImageIcon } from 'lucide-react'
 import { SettingsForm } from './_components/SettingsForm'
+import { PasswordInput } from '@/components/PasswordInput'
 
 export default async function SettingsPage() {
   const sessionUser = await getSessionUser()
@@ -111,11 +112,11 @@ export default async function SettingsPage() {
           <SettingsForm action={updatePasswordAction} submitLabel="Update Password">
             <div className="form-group">
               <label className="form-label" htmlFor="password">New Password</label>
-              <input className="form-input" type="password" id="password" name="password" minLength={6} required />
+              <PasswordInput id="password" name="password" minLength={6} required />
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="confirmPassword">Confirm New Password</label>
-              <input className="form-input" type="password" id="confirmPassword" name="confirmPassword" minLength={6} required />
+              <PasswordInput id="confirmPassword" name="confirmPassword" minLength={6} required />
             </div>
           </SettingsForm>
         </section>
