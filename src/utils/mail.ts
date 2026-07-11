@@ -175,7 +175,7 @@ export async function sendInvitationEmail(
   link: string
 ) {
   const subject = "You've been invited to join IT Avenue"
-  const text = `Hello ${name},\n\nYou have been invited to join the IT Avenue Task Management System as a ${role}. Click the following link to accept the invitation and set up your account password:\n\n${link}`
+  const text = `Hello ${name},\n\nYou have been invited to join the IT Avenue Task Management System as a ${role}. Click the following link to accept the invitation and set up your account password:\n\n${link}\n\nPlease note that this invitation link is valid for 48 hours.`
   const html = `
 <!DOCTYPE html>
 <html>
@@ -245,7 +245,8 @@ export async function sendInvitationEmail(
     <div class="header">Join the IT Avenue Workspace</div>
     <div class="content">
       Hello <strong>${name}</strong>,<br><br>
-      You have been invited to join the <strong>IT Avenue Task Management System</strong> as a <strong>${role}</strong>. Click the button below to accept the invitation and set up your account password.
+      You have been invited to join the <strong>IT Avenue Task Management System</strong> as a <strong>${role}</strong>. Click the button below to accept the invitation and set up your account password.<br><br>
+      <em>Please note that this invitation link is valid for 48 hours.</em>
     </div>
     <div class="btn-container">
       <a href="${link}" class="btn" target="_blank">Accept Invitation</a>

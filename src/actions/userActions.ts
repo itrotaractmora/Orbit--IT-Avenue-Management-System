@@ -74,7 +74,7 @@ export async function onboardUser(prevState: any, formData: FormData) {
       type: 'invite',
       email,
       options: {
-        redirectTo: `${siteUrl}/`,
+        redirectTo: `${siteUrl}/auth/confirm`,
         data: { name }
       }
     })
