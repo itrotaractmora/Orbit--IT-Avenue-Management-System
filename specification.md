@@ -142,8 +142,13 @@ A web-based task and project management system for the IT Avenue division, built
 **Onboarding a user (Email Invitation Flow)**
 - The system is strict invite-only. A user with appropriate permissions (President, Senior Director, Co-Director, or Team Lead) enters the new employee's name, email, role, and team.
 - The system immediately creates an underlying database record mapping their role and team.
-- Supabase automatically sends a secure email invitation to the user's email address.
-- The user clicks the link in the email, sets their password, and their account is fully activated.
+- The system generates a secure invitation link (configured to expire in 48 hours and redirect to `/auth/confirm`) and sends it to the user's email address using a custom Nodemailer SMTP service.
+- The user clicks the link in the email, which redirects them to the client-side session processor `/auth/confirm`. This route sets the session in the browser (handling any active session overrides cleanly) and redirects them to `/update-password` to set their permanent password.
+- Once the password is saved, their account is fully activated.
+
+**Self-Signup Workflow (Allowed Email Domain)**
+- The system supports a self-registration flow restricted to specific email domains.
+
 
 **Creating and assigning work**
 1. Senior Director or Co-Director creates a Project.
