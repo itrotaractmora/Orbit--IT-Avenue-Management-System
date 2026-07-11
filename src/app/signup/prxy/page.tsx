@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { signupAction } from '@/actions/authActions'
+import { signupAction, resendSignupOtpAction } from '@/actions/authActions'
 import Image from 'next/image'
 import { PasswordInput } from '@/components/PasswordInput'
 import { useRouter } from 'next/navigation'
@@ -78,14 +78,11 @@ export default function SignupProxyPage() {
     setResendSuccess(null)
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: state?.email || verifiedEmail || '',
-      })
+      const password = (state as any)?.password || ''
+      const result = await resendSignupOtpAction(state?.email || verifiedEmail || '', password)
 
-      if (error) {
-        setOtpError(error.message)
+      if (result?.error) {
+        setOtpError(result.error)
         setIsResending(false)
       } else {
         setResendSuccess('Verification code resent successfully!')
@@ -175,19 +172,19 @@ export default function SignupProxyPage() {
             </div>
             <h3 className="card-title" style={{ margin: 0 }}>Verify Your Email</h3>
             <p className="body-text" style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: '1.6', margin: 0 }}>
-              A confirmation email has been successfully sent to <strong style={{ color: 'var(--on-surface)' }}>{state.email}</strong>. Please check your inbox and enter the 6-digit code below, or click the link in the email.
+              A confirmation email has been successfully sent to <strong style={{ color: 'var(--on-surface)' }}>{state.email}</strong>. Please check your inbox and enter the verification code below, or click the link in the email.
             </p>
 
             <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)', width: '100%', marginTop: 'var(--spacing-8)' }}>
               <div className="form-group">
-                <label className="form-label" htmlFor="otp" style={{ textAlign: 'center', display: 'block' }}>6-Digit Verification Code</label>
+                <label className="form-label" htmlFor="otp" style={{ textAlign: 'center', display: 'block' }}>Verification Code</label>
                 <input
                   className="form-input"
                   id="otp"
                   type="text"
-                  maxLength={6}
+                  maxLength={8}
                   required
-                  placeholder="000000"
+                  placeholder="Enter code"
                   value={otp}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '')
@@ -253,7 +250,7 @@ export default function SignupProxyPage() {
                   gap: '8px',
                 }}
                 type="submit"
-                disabled={isOtpPending || otp.length !== 6}
+                disabled={isOtpPending || (otp.length !== 6 && otp.length !== 8)}
               >
                 {isOtpPending ? (
                   <>

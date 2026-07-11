@@ -5,6 +5,7 @@ import { getSessionUser } from './authActions'
 import { UserRole, UserStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/utils/supabase/admin'
+import { sendInvitationEmail } from '@/utils/mail'
 
 // Role Hierarchy Verification
 function canAddUser(actorRole: UserRole, targetRole: UserRole, actorTeamId: string | null, targetTeamId: string | null): boolean {
@@ -65,19 +66,26 @@ export async function onboardUser(prevState: any, formData: FormData) {
   }
 
   try {
-    // 1. Create user in Supabase Auth via Email Invitation
+    // 1. Generate invitation link without sending Supabase's automatic email
     const supabaseAdmin = createAdminClient()
     
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: { name }
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
+        redirectTo: `${siteUrl}/`,
+        data: { name }
+      }
     })
 
-    if (authError || !authData.user) {
+    if (authError || !authData.user || !authData.properties?.action_link) {
       console.error('Supabase Auth error:', authError)
-      return { error: `Failed to create auth account: ${authError?.message}` }
+      return { error: `Failed to generate onboarding link: ${authError?.message || 'Unknown error'}` }
     }
 
     const authUserId = authData.user.id
+    const actionLink = authData.properties.action_link
 
     // 2. Create user in Prisma with matching ID
     const newUser = await prisma.user.create({
@@ -104,7 +112,7 @@ export async function onboardUser(prevState: any, formData: FormData) {
     await prisma.notification.create({
       data: {
         userId: newUser.id,
-        type: 'TASK_ASSIGNED', // custom type could be used, using task_assigned as general welcome
+        type: 'TASK_ASSIGNED',
       }
     })
 
@@ -117,6 +125,15 @@ export async function onboardUser(prevState: any, formData: FormData) {
         actorId: actor.id
       }
     })
+
+    // 3. Send SMTP invitation email using custom Nodemailer mailer
+    try {
+      await sendInvitationEmail(email, name, role, actionLink)
+    } catch (mailError: any) {
+      console.error('Failed to send SMTP onboarding email:', mailError)
+      // We still return success as user creation succeeded, but log/warn about email delivery.
+      return { success: 'User onboarded, but SMTP invitation email failed to send. Please check your SMTP configuration.' }
+    }
 
     revalidatePath('/dashboard')
     return { success: 'User onboarded successfully!' }
