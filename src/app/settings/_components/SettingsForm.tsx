@@ -7,16 +7,17 @@ interface SettingsFormProps {
   submitLabel: string
   requireConfirmation?: string
   children: React.ReactNode
+  disabled?: boolean
 }
 
-export function SettingsForm({ action, submitLabel, requireConfirmation, children }: SettingsFormProps) {
+export function SettingsForm({ action, submitLabel, requireConfirmation, children, disabled = false }: SettingsFormProps) {
   const [state, formAction, isPending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     if (state?.success && formRef.current) {
       // Clear password fields on success
-      const passwordInputs = formRef.current.querySelectorAll('input[type="password"]')
+      const passwordInputs = formRef.current.querySelectorAll('input[type="password"], input[name="password"], input[name="confirmPassword"]')
       passwordInputs.forEach((input: any) => {
         input.value = ''
       })
@@ -46,7 +47,7 @@ export function SettingsForm({ action, submitLabel, requireConfirmation, childre
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
-        <button type="submit" className="btn btn-primary" disabled={isPending}>
+        <button type="submit" className="btn btn-primary" disabled={isPending || disabled}>
           {isPending ? 'Saving...' : submitLabel}
         </button>
       </div>

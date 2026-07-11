@@ -1,7 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { updatePasswordAction } from '@/actions/authActions'
+import { PasswordInput } from '@/components/PasswordInput'
+import { PasswordChecker } from '@/components/PasswordChecker'
 
 const initialState = {
   error: null as string | null
@@ -9,6 +11,9 @@ const initialState = {
 
 export default function UpdatePasswordPage() {
   const [state, formAction, pending] = useActionState(updatePasswordAction, initialState)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isPasswordValid, setIsPasswordValid] = useState(false)
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--surface)' }}>
@@ -29,33 +34,37 @@ export default function UpdatePasswordPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label htmlFor="password" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--on-surface)' }}>New Password</label>
-            <input
-              type="password"
+            <PasswordInput
               id="password"
               name="password"
               required
-              minLength={6}
-              className="form-input"
               style={{ width: '100%' }}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label htmlFor="confirmPassword" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--on-surface)' }}>Confirm Password</label>
-            <input
-              type="password"
+            <PasswordInput
               id="confirmPassword"
               name="confirmPassword"
               required
-              minLength={6}
-              className="form-input"
               style={{ width: '100%' }}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
 
+          <PasswordChecker
+            password={password}
+            confirmPassword={confirmPassword}
+            onValidate={setIsPasswordValid}
+          />
+
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !isPasswordValid}
             className="btn btn-primary"
             style={{ width: '100%', marginTop: 'var(--spacing-8)', height: '48px', fontSize: '16px' }}
           >

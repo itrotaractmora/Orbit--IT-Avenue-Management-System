@@ -15,6 +15,7 @@ export default function AuthCallbackPage() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
     const accessToken = hashParams.get('access_token')
     const refreshToken = hashParams.get('refresh_token')
+    const type = hashParams.get('type')
     const error = hashParams.get('error')
     const errorDescription = hashParams.get('error_description')
 
@@ -34,8 +35,18 @@ export default function AuthCallbackPage() {
           setStatus(`Session error: ${sessionError.message}`)
           setTimeout(() => router.push('/login'), 3000)
         } else {
-          setStatus('Success! Redirecting to set your password...')
-          router.push('/update-password')
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            const isSelfSigned = user?.user_metadata?.self_signed === true || type === 'signup'
+            if (isSelfSigned) {
+              supabase.auth.signOut().then(() => {
+                setStatus('Email confirmed successfully! Redirecting to login...')
+                setTimeout(() => router.push('/login?confirmed=true'), 2000)
+              })
+            } else {
+              setStatus('Success! Redirecting to set your password...')
+              router.push('/update-password')
+            }
+          })
         }
       })
     } else {
@@ -44,8 +55,12 @@ export default function AuthCallbackPage() {
       const code = urlParams.get('code')
       if (code) {
         // Exchange code for session via the server-side callback
-        fetch(`/auth/callback?code=${code}&next=/update-password`, { redirect: 'follow' })
-          .then(() => router.push('/update-password'))
+        fetch(`/auth/callback?code=${code}`, { redirect: 'follow' })
+          .then((response) => {
+            const finalUrl = new URL(response.url)
+            setStatus('Email confirmed successfully! Redirecting...')
+            router.push(finalUrl.pathname + finalUrl.search)
+          })
           .catch(() => {
             setStatus('Failed to process auth code.')
             setTimeout(() => router.push('/login'), 3000)

@@ -1,9 +1,10 @@
 import { getSessionUser } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
-import { updateProfileAction, updateEmailAction, updatePasswordAction } from '@/actions/settingsActions'
+import { updateProfileAction, updateEmailAction } from '@/actions/settingsActions'
 import Link from 'next/link'
-import { ArrowLeft, User as UserIcon, Mail, Lock, Shield, Settings, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, User as UserIcon, Mail, Shield, Settings, Image as ImageIcon } from 'lucide-react'
 import { SettingsForm } from './_components/SettingsForm'
+import { PasswordSettingsSection } from './_components/PasswordSettingsSection'
 
 export default async function SettingsPage() {
   const sessionUser = await getSessionUser()
@@ -97,28 +98,7 @@ export default async function SettingsPage() {
         </section>
 
         {/* Password Section */}
-        <section className="card" style={{ borderLeft: '4px solid var(--danger)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'var(--spacing-16)' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Lock size={20} />
-            </div>
-            <div>
-              <h2 className="section-title" style={{ margin: 0 }}>Security</h2>
-              <p className="body-text" style={{ fontSize: '13px', margin: 0 }}>Change your password.</p>
-            </div>
-          </div>
-          
-          <SettingsForm action={updatePasswordAction} submitLabel="Update Password">
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">New Password</label>
-              <input className="form-input" type="password" id="password" name="password" minLength={6} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="confirmPassword">Confirm New Password</label>
-              <input className="form-input" type="password" id="confirmPassword" name="confirmPassword" minLength={6} required />
-            </div>
-          </SettingsForm>
-        </section>
+        <PasswordSettingsSection />
 
       </div>
     </div>
