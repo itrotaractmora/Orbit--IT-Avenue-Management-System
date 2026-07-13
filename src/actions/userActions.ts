@@ -2,7 +2,7 @@
 
 import { prisma } from '@/utils/prisma'
 import { getSessionUser } from './authActions'
-import { UserRole, UserStatus } from '@prisma/client'
+import { TaskStatus, UserRole, UserStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { sendInvitationEmail } from '@/utils/mail'
@@ -224,6 +224,111 @@ export async function getTeams() {
   }
 
   return []
+}
+
+export async function updateProfileAction(input: { isPublicProfile?: boolean; avatar?: File | null; headline?: string; bio?: string; location?: string; skills?: string[] }) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  try {
+    const data: Record<string, unknown> = {}
+
+    if (typeof input.isPublicProfile === 'boolean') {
+      data.isPublicProfile = input.isPublicProfile
+    }
+
+    if (input.headline !== undefined) {
+      data.headline = input.headline || null
+    }
+
+    if (input.bio !== undefined) {
+      data.bio = input.bio || null
+    }
+
+    if (input.location !== undefined) {
+      data.location = input.location || null
+    }
+
+    if (input.skills !== undefined) {
+      data.skills = input.skills
+    }
+
+    if (input.avatar instanceof File) {
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+      if (!allowedTypes.includes(input.avatar.type)) {
+        return { error: 'Only PNG, JPG, or WebP images are allowed.' }
+      }
+      if (input.avatar.size > 2 * 1024 * 1024) {
+        return { error: 'Avatar image must be 2MB or smaller.' }
+      }
+      const arrayBuffer = await input.avatar.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      data.avatarUrl = `data:${input.avatar.type};base64,${buffer.toString('base64')}`
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: actor.id },
+      data,
+      select: { id: true, avatarUrl: true, isPublicProfile: true }
+    })
+
+    revalidatePath(`/profile/${actor.id}`)
+    return { success: true, avatarUrl: updatedUser.avatarUrl, isPublicProfile: updatedUser.isPublicProfile }
+  } catch (error: any) {
+    return { error: `Failed to update profile: ${error.message}` }
+  }
+}
+
+export async function updateTaskStatusAction(taskId: string, nextStatus: TaskStatus) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  const task = await prisma.task.findUnique({ where: { id: taskId } })
+  if (!task) {
+    return { error: 'Task not found.' }
+  }
+
+  if (task.assignedToId !== actor.id) {
+    return { error: 'Only the assignee can update this task status.' }
+  }
+
+  const validTransitions: Record<TaskStatus, TaskStatus[]> = {
+    [TaskStatus.OPEN]: [TaskStatus.IN_PROGRESS],
+    [TaskStatus.IN_PROGRESS]: [TaskStatus.PENDING_APPROVAL, TaskStatus.COMPLETED],
+    [TaskStatus.PENDING_APPROVAL]: [TaskStatus.COMPLETED],
+    [TaskStatus.COMPLETED]: [],
+    [TaskStatus.REJECTED]: [TaskStatus.IN_PROGRESS]
+  }
+
+  if (!validTransitions[task.status]?.includes(nextStatus)) {
+    return { error: 'That task transition is not allowed.' }
+  }
+
+  try {
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: { status: nextStatus }
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'Task',
+        entityId: taskId,
+        action: 'UPDATED',
+        actorId: actor.id
+      }
+    })
+
+    revalidatePath(`/profile/${actor.id}`)
+    revalidatePath('/dashboard')
+    return { success: true, task: updatedTask }
+  } catch (error: any) {
+    return { error: `Failed to update task: ${error.message}` }
+  }
 }
 
 export async function deactivateUserAction(userId: string) {

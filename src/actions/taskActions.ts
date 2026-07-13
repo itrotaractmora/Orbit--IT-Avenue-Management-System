@@ -103,6 +103,7 @@ export async function createTask(prevState: any, formData: FormData) {
         description,
         projectId: projectId || undefined,
         createdById: actor.id,
+        assignedById: assignedToId ? actor.id : null,
         assignedToId: assignedToId || undefined,
         priority,
         status: TaskStatus.OPEN,
@@ -182,6 +183,7 @@ export async function updateTaskAction(prevState: any, formData: FormData) {
         priority,
         status,
         projectId: projectId || null,
+        assignedById: assignedToId ? actor.id : null,
         assignedToId: assignedToId || null,
         dueDate: dueDateStr ? new Date(dueDateStr) : null,
       }
@@ -517,6 +519,7 @@ export async function reassignTask(taskId: string, targetUserId: string) {
     await prisma.task.update({
       where: { id: taskId },
       data: {
+        assignedById: actor.id,
         assignedToId: targetUserId,
         status: TaskStatus.IN_PROGRESS
       }
