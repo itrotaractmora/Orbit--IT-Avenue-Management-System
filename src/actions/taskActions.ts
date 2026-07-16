@@ -2,7 +2,7 @@
 
 import { prisma } from '@/utils/prisma'
 import { getSessionUser } from './authActions'
-import { UserRole, TaskStatus, TaskPriority, UserStatus, ApprovalDecision } from '@prisma/client'
+import { UserRole, TaskStatus, TaskPriority, UserStatus, ApprovalDecision, NotificationType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 
 // Helper: Resolve approver for a task assignee to prevent self-approval

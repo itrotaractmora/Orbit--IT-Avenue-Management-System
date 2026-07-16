@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react'
-import { TaskStatus } from '@prisma/client'
+import { TaskStatus } from '@/lib/enums'
 import { submitTask, dropClaim } from '@/actions/taskActions'
 import { TaskStatusBadge } from './TaskStatusBadge'
 import { OverdueBadge } from './OverdueBadge'

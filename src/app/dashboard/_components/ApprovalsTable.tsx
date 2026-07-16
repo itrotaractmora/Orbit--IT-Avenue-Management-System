@@ -1,6 +1,6 @@
 import { FileText, Clock } from 'lucide-react'
 import { decideApproval } from '@/actions/taskActions'
-import { ApprovalDecision } from '@prisma/client'
+import { ApprovalDecision } from '@/lib/enums'
 import { OverdueBadge } from './OverdueBadge'
 
 export function ApprovalsTable({ approvals, userId }: { approvals: any[], userId: string }) {

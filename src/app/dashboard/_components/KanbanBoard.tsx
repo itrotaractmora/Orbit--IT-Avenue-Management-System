@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TaskStatus } from '@prisma/client'
+import { TaskStatus } from '@/lib/enums'
 import { updateTaskStatus } from '@/actions/kanbanActions'
 import Link from 'next/link'
 import { Calendar, AlertCircle, Plus, Search, Filter } from 'lucide-react'

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { FolderOpen } from 'lucide-react'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus } from '@/lib/enums'
 import { updateProjectStatus } from '@/actions/projectActions'
 
 export function ProjectsList({ projects, isAdmin }: { projects: any[], isAdmin: boolean }) {

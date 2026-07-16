@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { X } from 'lucide-react'
 import { updateProjectAction } from '@/actions/projectActions'
 import { useRouter } from 'next/navigation'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus } from '@/lib/enums'
 import { useActionState, useEffect } from 'react'
 
 export function EditProjectModal({ 

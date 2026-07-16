@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TaskStatus } from '@prisma/client'
+import { TaskStatus } from '@/lib/enums'
 import { TaskStatusBadge } from './TaskStatusBadge'
 import { reassignTask, deleteTaskAction } from '@/actions/taskActions'
 import Link from 'next/link'

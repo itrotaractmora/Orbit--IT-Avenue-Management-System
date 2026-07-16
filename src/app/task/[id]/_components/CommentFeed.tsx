@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from 'react'
 import { addCommentAction, deleteCommentAction } from '@/actions/commentActions'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '@/lib/enums'
 import { Send, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 

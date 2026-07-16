@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { X } from 'lucide-react'
 import { updateTaskAction } from '@/actions/taskActions'
 import { useRouter } from 'next/navigation'
-import { TaskStatus, TaskPriority } from '@prisma/client'
+import { TaskStatus, TaskPriority } from '@/lib/enums'
 import { useActionState, useEffect } from 'react'
 
 export function EditTaskModal({ 

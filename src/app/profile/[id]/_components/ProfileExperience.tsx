@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, BadgeCheck, Briefcase, Camera, Copy, FileDown, Mail, Sparkles, Workflow, Lock, ShieldCheck, CircleDashed, Loader2, Check, AlertCircle, Upload } from 'lucide-react'
-import { TaskStatus, UserRole } from '@prisma/client'
+import { TaskStatus, UserRole } from '@/lib/enums'
 import { updateProfileAction, updateTaskStatusAction } from '@/actions/userActions'
 
 type ProfileUser = {

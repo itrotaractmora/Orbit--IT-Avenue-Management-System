@@ -1,4 +1,4 @@
-import { TaskStatus } from '@prisma/client'
+import { TaskStatus } from '@/lib/enums'
 import { CheckCircle2, Clock, PlayCircle, XCircle, Circle } from 'lucide-react'
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {

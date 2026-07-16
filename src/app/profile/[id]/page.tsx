@@ -2,7 +2,7 @@ import { prisma } from '@/utils/prisma'
 import { getSessionUser } from '@/actions/authActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { TaskStatus, UserRole } from '@prisma/client'
+import { TaskStatus, UserRole } from '@/lib/enums'
 import { ProfileExperience } from './_components/ProfileExperience'
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {

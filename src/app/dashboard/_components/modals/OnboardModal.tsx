@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { X } from 'lucide-react'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '@/lib/enums'
 import { onboardUser } from '@/actions/userActions'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'

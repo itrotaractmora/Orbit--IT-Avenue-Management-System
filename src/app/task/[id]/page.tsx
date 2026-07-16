@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, CheckSquare } from 'lucide-react'
 import { CommentFeed } from './_components/CommentFeed'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '@/lib/enums'
 import Image from 'next/image'
 
 export default async function TaskDetailsPage({ params }: { params: Promise<{ id: string }> }) {
