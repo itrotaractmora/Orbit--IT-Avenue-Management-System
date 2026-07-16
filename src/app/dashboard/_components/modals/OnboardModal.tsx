@@ -1,8 +1,11 @@
+'use client'
+
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { UserRole } from '@prisma/client'
 import { onboardUser } from '@/actions/userActions'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
 
 export function OnboardModal({ 
   action, 
@@ -21,18 +24,17 @@ export function OnboardModal({
   userTeamId: string | null,
   teams: any[] 
 }) {
+  const router = useRouter()
   const canOnboard = isExecutive || isCoDirector || isTeamLead
-  if (action !== 'new-employee' || !canOnboard) return null
+  const [state, formAction, isPending] = useActionState(onboardUser, null)
 
-  async function handleOnboard(formData: FormData) {
-    'use server'
-    const result = await onboardUser(null, formData)
-    if (result?.error) {
-      // Re-throw as an error so the user sees something went wrong
-      throw new Error(result.error)
+  useEffect(() => {
+    if (state?.success) {
+      router.push('/dashboard')
     }
-    redirect('/dashboard')
-  }
+  }, [state, router])
+
+  if (action !== 'new-employee' || !canOnboard) return null
 
   return (
     <div className="glass-overlay">
@@ -44,7 +46,13 @@ export function OnboardModal({
           </Link>
         </div>
         
-        <form action={handleOnboard} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
+        {state?.error && (
+          <div style={{ padding: '12px', backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error-text, #dc2626)', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid var(--error-border, #f87171)' }}>
+            {state.error}
+          </div>
+        )}
+
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">
             <label className="form-label" htmlFor="name">Full Name</label>
             <input className="form-input" id="name" name="name" placeholder="Alex Johnson" required />
@@ -103,7 +111,9 @@ export function OnboardModal({
 
           <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
             <Link href="/dashboard" className="btn btn-secondary">Cancel</Link>
-            <button className="btn btn-primary" type="submit">Onboard Employee</button>
+            <button className="btn btn-primary" type="submit" disabled={isPending}>
+              {isPending ? 'Onboarding...' : 'Onboard Employee'}
+            </button>
           </div>
         </form>
       </div>

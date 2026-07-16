@@ -12,7 +12,7 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus) {
   try {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      include: { project: true }
+      include: { project: true, assignees: true }
     })
 
     if (!task) return { error: 'Task not found' }
@@ -25,7 +25,7 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus) {
     // 4. You are a Team Lead of the Team that owns the Project
     const isAdminTier = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(actor.role)
     const isCreator = task.createdById === actor.id
-    const isAssignee = task.assignedToId === actor.id
+    const isAssignee = task.assignees.some(u => u.id === actor.id)
     const isTeamLeadOfProject = actor.role === UserRole.TEAM_LEAD && task.project?.teamId === actor.teamId
 
     if (!isAdminTier && !isCreator && !isAssignee && !isTeamLeadOfProject) {
@@ -48,10 +48,56 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus) {
       data: { status: newStatus }
     })
 
-    revalidatePath('/dashboard/board')
+    // Audit log for Kanban status changes
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'Task',
+        entityId: taskId,
+        action: `STATUS_${newStatus}`,
+        actorId: actor.id
+      }
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error('Failed to update task status:', error)
     return { error: 'Failed to update task status' }
+  }
+}
+
+export async function quickCreateTask(title: string) {
+  const actor = await getSessionUser()
+  if (!actor) return { error: 'Not authenticated' }
+
+  // Only admins, co-directors, and team leads can create tasks
+  const canCreate = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR, UserRole.TEAM_LEAD] as UserRole[]).includes(actor.role)
+  if (!canCreate) {
+    return { error: 'You do not have permission to create tasks.' }
+  }
+
+  try {
+    const task = await prisma.task.create({
+      data: {
+        title,
+        status: TaskStatus.OPEN,
+        priority: 'MEDIUM',
+        createdById: actor.id,
+        assignees: { connect: { id: actor.id } },
+      }
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'Task',
+        entityId: task.id,
+        action: 'CREATED',
+        actorId: actor.id
+      }
+    })
+
+    revalidatePath('/dashboard')
+    return { success: true, task }
+  } catch (err: any) {
+    return { error: err.message }
   }
 }

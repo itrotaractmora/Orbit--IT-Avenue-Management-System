@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isProfileRoute = path.startsWith('/profile/')
-  const isAuthRoute = path === '/login' || path === '/signup' || path.startsWith('/signup/')
+  const isAuthRoute = path === '/login' || path === '/signup' || path.startsWith('/signup/') || path === '/join'
   const isInviteRoute = path.startsWith('/auth/') || path === '/update-password'
 
   if (!user && !isProfileRoute && !isAuthRoute && !isInviteRoute && path !== '/') {

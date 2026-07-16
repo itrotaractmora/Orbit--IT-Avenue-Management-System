@@ -65,7 +65,7 @@ export async function createTask(prevState: any, formData: FormData) {
   const title = formData.get('title') as string
   const description = formData.get('description') as string || ''
   const projectId = formData.get('projectId') as string || null
-  const assignedToId = formData.get('assignedToId') as string || null
+  const assigneeIds = formData.getAll('assigneeIds') as string[]
   const priority = formData.get('priority') as TaskPriority || TaskPriority.MEDIUM
   const dueDateStr = formData.get('dueDate') as string
 
@@ -87,10 +87,11 @@ export async function createTask(prevState: any, formData: FormData) {
         return { error: 'Team Leads can only create tasks for projects overseen by their team.' }
       }
     }
-    // If assignee is set, verify they are in the same team
-    if (assignedToId) {
-      const targetUser = await prisma.user.findUnique({ where: { id: assignedToId } })
-      if (targetUser?.teamId !== actor.teamId) {
+    // If assignees are set, verify they are in the same team
+    if (assigneeIds.length > 0) {
+      const targetUsers = await prisma.user.findMany({ where: { id: { in: assigneeIds } } })
+      const allInTeam = targetUsers.every(u => u.teamId === actor.teamId)
+      if (!allInTeam) {
         return { error: 'Team Leads can only assign tasks to their own team members.' }
       }
     }
@@ -103,8 +104,8 @@ export async function createTask(prevState: any, formData: FormData) {
         description,
         projectId: projectId || undefined,
         createdById: actor.id,
-        assignedById: assignedToId ? actor.id : null,
-        assignedToId: assignedToId || undefined,
+        assignedById: assigneeIds.length > 0 ? actor.id : null,
+        assignees: { connect: assigneeIds.map(id => ({ id })) },
         priority,
         status: TaskStatus.OPEN,
         dueDate
@@ -121,15 +122,17 @@ export async function createTask(prevState: any, formData: FormData) {
       }
     })
 
-    // Notify assignee if pre-assigned
-    if (assignedToId) {
-      await prisma.notification.create({
-        data: {
-          userId: assignedToId,
-          type: 'TASK_ASSIGNED',
-          taskId: task.id
-        }
-      })
+    // Notify assignees if pre-assigned
+    if (assigneeIds.length > 0) {
+      for (const id of assigneeIds) {
+        await prisma.notification.create({
+          data: {
+            userId: id,
+            type: 'TASK_ASSIGNED',
+            taskId: task.id
+          }
+        })
+      }
     }
 
     revalidatePath('/dashboard')
@@ -151,7 +154,7 @@ export async function updateTaskAction(prevState: any, formData: FormData) {
   const priority = formData.get('priority') as TaskPriority
   const status = formData.get('status') as TaskStatus
   const projectId = formData.get('projectId') as string || null
-  const assignedToId = formData.get('assignedToId') as string || null
+  const assigneeIds = formData.getAll('assigneeIds') as string[]
   const dueDateStr = formData.get('dueDate') as string
 
   if (!taskId || !title) {
@@ -183,8 +186,8 @@ export async function updateTaskAction(prevState: any, formData: FormData) {
         priority,
         status,
         projectId: projectId || null,
-        assignedById: assignedToId ? actor.id : null,
-        assignedToId: assignedToId || null,
+        assignedById: assigneeIds.length > 0 ? actor.id : null,
+        assignees: { set: assigneeIds.map(id => ({ id })) },
         dueDate: dueDateStr ? new Date(dueDateStr) : null,
       }
     })
@@ -275,7 +278,7 @@ export async function claimTask(taskId: string) {
     await prisma.task.update({
       where: { id: taskId },
       data: {
-        assignedToId: actor.id,
+        assignees: { connect: { id: actor.id } },
         status: TaskStatus.IN_PROGRESS
       }
     })
@@ -296,7 +299,7 @@ export async function claimTask(taskId: string) {
   }
 }
 
-export async function submitTask(taskId: string) {
+export async function submitTask(taskId: string, comment?: string) {
   const actor = await getSessionUser()
   if (!actor || actor.status !== UserStatus.ACTIVE) {
     return { error: 'Unauthorized' }
@@ -304,11 +307,12 @@ export async function submitTask(taskId: string) {
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { project: true }
+    include: { project: true, assignees: true }
   })
 
-  if (!task || task.assignedToId !== actor.id) {
-    return { error: 'Only the assignee can submit the task for approval.' }
+  const isAssignee = task?.assignees.some(u => u.id === actor.id)
+  if (!task || !isAssignee) {
+    return { error: 'Only an assignee can submit the task for approval.' }
   }
 
   if (task.status !== TaskStatus.IN_PROGRESS && task.status !== TaskStatus.REJECTED) {
@@ -326,6 +330,16 @@ export async function submitTask(taskId: string) {
         approverId
       }
     })
+
+    if (comment && comment.trim() !== '') {
+      await prisma.comment.create({
+        data: {
+          taskId,
+          userId: actor.id,
+          content: comment.trim()
+        }
+      })
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -359,7 +373,8 @@ export async function decideApproval(taskId: string, decision: ApprovalDecision,
   }
 
   const task = await prisma.task.findUnique({
-    where: { id: taskId }
+    where: { id: taskId },
+    include: { assignees: true }
   })
 
   if (!task || task.status !== TaskStatus.PENDING_APPROVAL) {
@@ -369,63 +384,144 @@ export async function decideApproval(taskId: string, decision: ApprovalDecision,
   // Ensure actor matches the resolved approverId, or actor is President/Senior Director override
   const isApprover = task.approverId === actor.id
   const isSuperUser = actor.role === UserRole.PRESIDENT
-  const isSeniorOverride = actor.role === UserRole.SENIOR_DIRECTOR
+  const isSeniorOverride = actor.role === UserRole.SENIOR_DIRECTOR || actor.role === UserRole.CO_DIRECTOR
 
   if (!isApprover && !isSuperUser && !isSeniorOverride) {
     return { error: 'Unauthorized. You are not the assigned approver for this task.' }
   }
 
   // Self-approval check
-  if (task.assignedToId === actor.id) {
+  if (task.assignees.some(u => u.id === actor.id)) {
     return { error: 'Security constraint: You cannot approve your own task.' }
   }
 
   // Mandatory comment check for rejections
   if (decision === ApprovalDecision.REJECTED && (!comment || comment.trim() === '')) {
-    return { error: 'A rejection comment is required.' }
+    return { error: 'A rejection/reopen comment is required.' }
   }
 
   try {
-    const finalStatus = decision === ApprovalDecision.APPROVED ? TaskStatus.COMPLETED : TaskStatus.REJECTED
+    // When rejecting, put the task back to IN_PROGRESS so it appears on the member's Kanban board
+    const finalStatus = decision === ApprovalDecision.APPROVED ? TaskStatus.COMPLETED : TaskStatus.IN_PROGRESS
 
-    await prisma.$transaction([
-      prisma.task.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.task.update({
         where: { id: taskId },
         data: { status: finalStatus }
-      }),
-      prisma.approval.create({
+      })
+      await tx.approval.create({
         data: {
           taskId,
           decidedById: actor.id,
           decision,
           comment
         }
-      }),
-      prisma.auditLog.create({
+      })
+      
+      if (decision === ApprovalDecision.REJECTED && comment) {
+        await tx.comment.create({
+          data: {
+            taskId,
+            userId: actor.id,
+            content: `[Task Reopened] ${comment}`
+          }
+        })
+      }
+
+      await tx.auditLog.create({
         data: {
           entityType: 'Task',
           entityId: taskId,
-          action: decision === ApprovalDecision.APPROVED ? 'APPROVED' : 'REJECTED',
+          action: decision === ApprovalDecision.APPROVED ? 'APPROVED' : 'REJECTED (REOPENED)',
           actorId: actor.id
         }
       })
-    ])
+    })
 
-    // Notify Assignee
-    if (task.assignedToId) {
-      await prisma.notification.create({
-        data: {
-          userId: task.assignedToId,
-          type: decision === ApprovalDecision.APPROVED ? 'TASK_ASSIGNED' : 'TASK_REJECTED', // Using task_assigned as general success notifications, or customized. Let's make it task_rejected for rejections.
+    // Notify Assignees
+    if (task.assignees.length > 0) {
+      await prisma.notification.createMany({
+        data: task.assignees.map(u => ({
+          userId: u.id,
+          type: decision === ApprovalDecision.APPROVED ? NotificationType.TASK_ASSIGNED : NotificationType.TASK_REJECTED,
           taskId: task.id
-        }
+        }))
       })
     }
 
     revalidatePath('/dashboard')
-    return { success: `Task has been successfully ${decision.toLowerCase()}!` }
+    revalidatePath('/tasks')
+    revalidatePath(`/task/${taskId}`)
+    return { success: `Task ${decision === ApprovalDecision.APPROVED ? 'approved' : 'reopened'} successfully!` }
   } catch (error: any) {
-    return { error: `Failed to record decision: ${error.message}` }
+    console.error('Approval error:', error)
+    return { error: `Failed to process approval: ${error.message}` }
+  }
+}
+
+export async function submitTaskForApprovalAction(prevState: any, formData: FormData) {
+  const actor = await getSessionUser()
+  if (!actor || actor.status !== UserStatus.ACTIVE) {
+    return { error: 'Unauthorized' }
+  }
+
+  const taskId = formData.get('taskId') as string
+  const commentStr = formData.get('comment') as string
+
+  if (!taskId) {
+    return { error: 'Task ID is required' }
+  }
+
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { assignees: true }
+  })
+
+  if (!existingTask) {
+    return { error: 'Task not found' }
+  }
+
+  // Check if actor is an assignee
+  if (!existingTask.assignees.some(a => a.id === actor.id)) {
+    return { error: 'You are not assigned to this task.' }
+  }
+
+  if (existingTask.status !== TaskStatus.IN_PROGRESS) {
+    return { error: 'Only tasks in progress can be submitted for approval.' }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status: TaskStatus.PENDING_APPROVAL }
+      })
+
+      if (commentStr && commentStr.trim().length > 0) {
+        await tx.comment.create({
+          data: {
+            taskId,
+            userId: actor.id,
+            content: commentStr.trim()
+          }
+        })
+      }
+
+      await tx.auditLog.create({
+        data: {
+          entityType: 'Task',
+          entityId: taskId,
+          action: 'SUBMITTED_FOR_APPROVAL',
+          actorId: actor.id
+        }
+      })
+    })
+
+    revalidatePath('/dashboard')
+    return { success: 'Task submitted for approval!' }
+  } catch (error: any) {
+    console.error('Submit task error:', error)
+    return { error: `Failed to submit task: ${error.message}` }
   }
 }
 
@@ -441,11 +537,11 @@ export async function dropClaim(taskId: string, reason: string) {
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { project: true }
+    include: { project: true, assignees: true }
   })
 
-  if (!task || task.assignedToId !== actor.id) {
-    return { error: 'Only the assignee can drop a claimed task.' }
+  if (!task || !task.assignees.some(u => u.id === actor.id)) {
+    return { error: 'Only an assignee can drop a claimed task.' }
   }
 
   if (task.status !== TaskStatus.IN_PROGRESS && task.status !== TaskStatus.OPEN) {
@@ -456,7 +552,7 @@ export async function dropClaim(taskId: string, reason: string) {
     await prisma.task.update({
       where: { id: taskId },
       data: {
-        assignedToId: null,
+        assignees: { disconnect: { id: actor.id } },
         status: TaskStatus.OPEN
       }
     })
@@ -520,7 +616,7 @@ export async function reassignTask(taskId: string, targetUserId: string) {
       where: { id: taskId },
       data: {
         assignedById: actor.id,
-        assignedToId: targetUserId,
+        assignees: { connect: { id: targetUserId } },
         status: TaskStatus.IN_PROGRESS
       }
     })
@@ -559,10 +655,11 @@ export async function getTasks() {
     return prisma.task.findMany({
       include: {
         project: { include: { members: true } },
-        assignee: true,
+        assignees: true,
         creator: true,
         approver: true,
-        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } }
+        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } },
+        comments: { orderBy: { createdAt: 'desc' }, take: 1 }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -572,21 +669,22 @@ export async function getTasks() {
   if (actor.role === UserRole.TEAM_LEAD) {
     const orConditions: any[] = [
       { project: { members: { some: { id: actor.id } } } },
-      { assignedToId: actor.id }, // Make sure they at least see their own
+      { assignees: { some: { id: actor.id } } }, // Make sure they at least see their own
       { createdById: actor.id }
     ]
     if (actor.teamId) {
       orConditions.push({ project: { teamId: actor.teamId } })
-      orConditions.push({ assignee: { teamId: actor.teamId } })
+      orConditions.push({ assignees: { some: { teamId: actor.teamId } } })
     }
     return prisma.task.findMany({
       where: { OR: orConditions },
       include: {
         project: { include: { members: true } },
-        assignee: true,
+        assignees: true,
         creator: true,
         approver: true,
-        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } }
+        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } },
+        comments: { orderBy: { createdAt: 'desc' }, take: 1 }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -595,7 +693,7 @@ export async function getTasks() {
   // Members see their assigned tasks and open claimable tasks matching their team
   if (actor.role === UserRole.MEMBER) {
     const orConditions: any[] = [
-      { assignedToId: actor.id },
+      { assignees: { some: { id: actor.id } } },
       { status: TaskStatus.OPEN, project: { members: { some: { id: actor.id } } } },
       { status: TaskStatus.OPEN, projectId: null } // general standalone open tasks
     ]
@@ -606,10 +704,11 @@ export async function getTasks() {
       where: { OR: orConditions },
       include: {
         project: { include: { members: true } },
-        assignee: true,
+        assignees: true,
         creator: true,
         approver: true,
-        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } }
+        approvals: { include: { decidedBy: true }, orderBy: { decidedAt: 'desc' } },
+        comments: { orderBy: { createdAt: 'desc' }, take: 1 }
       },
       orderBy: { createdAt: 'desc' }
     })

@@ -1,31 +1,41 @@
+'use client'
+
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { updateProjectAction } from '@/actions/projectActions'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ProjectStatus } from '@prisma/client'
+import { useActionState, useEffect } from 'react'
 
 export function EditProjectModal({ 
   action, 
   project, 
-  teams 
+  teams,
+  returnUrl
 }: { 
   action: string | undefined, 
   project: any, 
-  teams: any[] 
+  teams: any[],
+  returnUrl?: string
 }) {
-  if (action !== `edit-project-${project?.id}` || !project) return null
+  const router = useRouter()
+  const baseReturnUrl = returnUrl || (project?.id ? `/project/${project.id}` : '/projects')
 
-  async function handleUpdateProject(formData: FormData) {
-    'use server'
+  // Wrap updateProjectAction to inject projectId from the closure
+  async function handleUpdateProject(prevState: any, formData: FormData) {
     formData.append('projectId', project.id)
-    const result = await updateProjectAction(null, formData)
-    if (result?.error) {
-      throw new Error(result.error)
-    }
-    // Extract the base path to redirect to
-    // We assume the user might be on /projects or /project/[id]
-    redirect(project.id ? `/project/${project.id}` : '/projects')
+    return updateProjectAction(prevState, formData)
   }
+
+  const [state, formAction, isPending] = useActionState(handleUpdateProject, null)
+
+  useEffect(() => {
+    if (state?.success) {
+      router.push(baseReturnUrl)
+    }
+  }, [state, router, baseReturnUrl])
+
+  if (action !== `edit-project-${project?.id}` || !project) return null
 
   // Format dates for input[type="date"]
   const startDateStr = project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : ''
@@ -36,12 +46,18 @@ export function EditProjectModal({
       <div className="modal-content">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-24)' }}>
           <h3 className="card-title">Edit Project</h3>
-          <Link href={`/project/${project.id}`} style={{ color: 'var(--on-surface-variant)' }}>
+          <Link href={baseReturnUrl} style={{ color: 'var(--on-surface-variant)' }}>
             <X size={18} />
           </Link>
         </div>
+
+        {state?.error && (
+          <div style={{ padding: '12px', backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error-text, #dc2626)', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid var(--error-border, #f87171)' }}>
+            {state.error}
+          </div>
+        )}
         
-        <form action={handleUpdateProject} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">
             <label className="form-label" htmlFor="projectTitle">Project Title</label>
             <input className="form-input" id="projectTitle" name="title" defaultValue={project.title} required />
@@ -83,8 +99,10 @@ export function EditProjectModal({
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
-            <Link href={`/project/${project.id}`} className="btn btn-secondary">Cancel</Link>
-            <button className="btn btn-primary" type="submit">Save Changes</button>
+            <Link href={baseReturnUrl} className="btn btn-secondary">Cancel</Link>
+            <button className="btn btn-primary" type="submit" disabled={isPending}>
+              {isPending ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </form>
       </div>

@@ -4,39 +4,37 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { verifyInviteCode } from '@/actions/userActions'
 
-export default function SignupGatePage() {
+export default function JoinPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsPending(true)
 
-    // Wait a brief moment for transition UX/micro-animation
-    setTimeout(() => {
-      const trimmedEmail = email.trim()
-      if (!trimmedEmail) {
-        setError('Email address is required')
+    try {
+      const result = await verifyInviteCode(email, code)
+
+      if (result.error) {
+        setError(result.error)
         setIsPending(false)
         return
       }
 
-      if (!trimmedEmail.endsWith('rotaractmora@gmail.com')) {
-        setError('Registration is restricted. Invalid email address.')
-        setIsPending(false)
-        return
+      if (result.tokenHash) {
+        // Redirect to auth callback with the token hash to complete Supabase verification
+        router.push(`/auth/callback?token_hash=${result.tokenHash}&type=invite&next=/update-password`)
       }
-
-      // Store in session storage
-      sessionStorage.setItem('signup_allowed_email', trimmedEmail)
-      
-      // Proceed to the registration proxy page
-      router.push('/signup/prxy')
-    }, 600)
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+      setIsPending(false)
+    }
   }
 
   return (
@@ -76,27 +74,51 @@ export default function SignupGatePage() {
             />
           </div>
           <div>
-            <h3 className="card-title" style={{ margin: '0 0 4px 0', fontSize: '20px' }}>Join Orbit</h3>
+            <h3 className="card-title" style={{ margin: '0 0 4px 0', fontSize: '20px' }}>Accept Invitation</h3>
             <p className="body-text" style={{ fontSize: '13px', marginTop: '2px', textAlign: 'center', color: 'var(--on-surface-variant)' }}>
-              Enter your email and 6-digit invitation code
+              Enter your email and the 6-digit code from your invitation email
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">
-            <label className="form-label" htmlFor="gate-email">Email address</label>
+            <label className="form-label" htmlFor="join-email">Email address</label>
             <input
               className="form-input"
-              id="gate-email"
+              id="join-email"
               type="email"
               required
-              placeholder="name.rotaractmora@gmail.com"
+              placeholder="your.email@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isPending}
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="join-code">Invitation Code</label>
+            <input
+              className="form-input"
+              id="join-code"
+              type="text"
+              maxLength={6}
+              required
+              placeholder="Enter 6-digit code"
+              value={code}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '')
+                setCode(val)
+              }}
+              disabled={isPending}
               style={{
-                transition: 'border-color 0.2s, box-shadow 0.2s',
+                letterSpacing: '8px',
+                textIndent: '8px',
+                textAlign: 'center',
+                fontSize: '20px',
+                fontWeight: 600,
+                fontFamily: 'monospace',
               }}
             />
           </div>
@@ -133,10 +155,9 @@ export default function SignupGatePage() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              transition: 'all 0.2s ease-in-out',
             }}
             type="submit"
-            disabled={isPending}
+            disabled={isPending || code.length !== 6}
           >
             {isPending ? (
               <>
@@ -150,14 +171,15 @@ export default function SignupGatePage() {
                 }} />
                 Verifying...
               </>
-            ) : 'Verify & Proceed'}
+            ) : 'Accept Invitation'}
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: 'var(--spacing-24)', fontSize: '13px' }}>
-          <Link href="/login" style={{ color: 'var(--on-surface-variant)', textDecoration: 'none', fontWeight: 500 }}>
-            Back to Sign In
+          <span style={{ color: 'var(--on-surface-variant)' }}>Already have an account? </span>
+          <Link href="/login" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+            Sign In
           </Link>
         </div>
       </div>

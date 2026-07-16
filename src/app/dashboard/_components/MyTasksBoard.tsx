@@ -72,10 +72,17 @@ export function MyTasksBoard({ myTasks }: { myTasks: any[] }) {
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {(t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.REJECTED) && (
-                          <form action={async () => {
+                          <form action={async (formData: FormData) => {
                             'use server'
-                            await submitTask(t.id)
-                          }}>
+                            const comment = formData.get('comment') as string
+                            await submitTask(t.id, comment)
+                          }} style={{ display: 'flex', gap: '4px' }}>
+                            <input
+                              className="form-input"
+                              name="comment"
+                              placeholder="Submission comment..."
+                              style={{ height: '32px', padding: '4px 8px', fontSize: '12px', width: '150px' }}
+                            />
                             <button className="btn btn-primary" style={{ height: '32px', fontSize: '12px', padding: '0 12px', borderRadius: '8px' }} type="submit">
                               Submit
                             </button>

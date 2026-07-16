@@ -50,7 +50,7 @@ function LoginForm() {
             />
           </div>
           <div>
-            <p className="body-text" style={{ fontSize: '13px', marginTop: '2px', textAlign: 'center' }}>IT Division — Sign in to your account</p>
+            <p className="body-text" style={{ fontSize: '13px', marginTop: '2px', textAlign: 'center' }}>Orbit — Sign in to your account</p>
           </div>
         </div>
 

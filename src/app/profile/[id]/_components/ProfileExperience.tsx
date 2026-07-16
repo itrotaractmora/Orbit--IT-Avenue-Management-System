@@ -29,7 +29,7 @@ type ProfileUser = {
     project: { title: string | null } | null
     creator: { name: string; avatarUrl: string | null; role: UserRole } | null
     assigner: { name: string; avatarUrl: string | null; role: UserRole } | null
-    assignee: { name: string; avatarUrl: string | null; role: UserRole } | null
+    assignees: Array<{ name: string; avatarUrl: string | null; role: UserRole }>
   }>
 }
 
@@ -217,10 +217,12 @@ export function ProfileExperience({ profileUser, isOwner, canViewInternal, siteU
                 <FileDown size={16} />
                 <span>Download as PDF</span>
               </button>
-              <button className="btn btn-primary" onClick={handleToggleVisibility}>
-                {isPublic ? <Lock size={16} /> : <ShieldCheck size={16} />}
-                <span>{isPublic ? 'Hide public view' : 'Publish profile'}</span>
-              </button>
+              {isOwner && (
+                <button className="btn btn-primary" onClick={handleToggleVisibility}>
+                  {isPublic ? <Lock size={16} /> : <ShieldCheck size={16} />}
+                  <span>{isPublic ? 'Hide public view' : 'Publish profile'}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -302,9 +304,24 @@ export function ProfileExperience({ profileUser, isOwner, canViewInternal, siteU
               <span className="chip chip-success">Live updates</span>
             </div>
             {isPublicExternal ? (
-              <div className="empty-state" style={{ padding: '16px', minHeight: '120px' }}>
-                <ShieldCheck size={18} />
-                <p className="empty-state-description">Public view shows completed work and verified skills only. Internal task details remain private.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="empty-state" style={{ padding: '16px', minHeight: 'auto', marginBottom: '8px' }}>
+                  <ShieldCheck size={18} />
+                  <p className="empty-state-description">Public view shows completed work and verified skills only. Internal task details remain private.</p>
+                </div>
+                {visibleTasks.length === 0 ? (
+                  <p className="body-text" style={{ textAlign: 'center', fontStyle: 'italic' }}>No completed tasks to display yet.</p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                    {visibleTasks.map((task) => (
+                      <div key={task.id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
+                        <strong style={{ fontSize: '15px', display: 'block', marginBottom: '8px' }}>{task.title}</strong>
+                        <div className="body-text" style={{ fontSize: '13px', marginBottom: '8px' }}>{task.project?.title || 'General task'}</div>
+                        <span className="chip chip-success" style={{ fontSize: '11px', padding: '2px 6px' }}>Completed</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid-dashboard" style={{ gap: '12px' }}>
@@ -359,8 +376,12 @@ export function ProfileExperience({ profileUser, isOwner, canViewInternal, siteU
             <h3 style={{ marginBottom: '12px' }}>Quick actions</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button className="btn btn-primary" onClick={copyLink}><Copy size={16} /> Copy CV link</button>
-              <button className="btn btn-secondary" onClick={handleToggleVisibility}>{isPublic ? <Lock size={16} /> : <ShieldCheck size={16} />} {isPublic ? 'Hide public view' : 'Publish profile'}</button>
-              <button className="btn btn-secondary" onClick={() => setShowInternal((value) => !value)}><Workflow size={16} /> {showInternal ? 'Hide internal data' : 'Show internal view'}</button>
+              {isOwner && (
+                <button className="btn btn-secondary" onClick={handleToggleVisibility}>{isPublic ? <Lock size={16} /> : <ShieldCheck size={16} />} {isPublic ? 'Hide public view' : 'Publish profile'}</button>
+              )}
+              {canViewInternal && (
+                <button className="btn btn-secondary" onClick={() => setShowInternal((value) => !value)}><Workflow size={16} /> {showInternal ? 'Hide internal data' : 'Show internal view'}</button>
+              )}
             </div>
           </div>
 

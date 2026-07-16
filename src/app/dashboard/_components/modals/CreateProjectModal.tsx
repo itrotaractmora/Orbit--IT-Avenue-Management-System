@@ -1,16 +1,22 @@
+'use client'
+
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { createProject } from '@/actions/projectActions'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
 
 export function CreateProjectModal({ action, isAdminTier, teams }: { action: string | undefined, isAdminTier: boolean, teams: any[] }) {
-  if (action !== 'create-project' || !isAdminTier) return null
+  const router = useRouter()
+  const [state, formAction, isPending] = useActionState(createProject, null)
 
-  async function handleCreateProject(formData: FormData) {
-    'use server'
-    await createProject(null, formData)
-    redirect('/dashboard')
-  }
+  useEffect(() => {
+    if (state?.success) {
+      router.push('/dashboard')
+    }
+  }, [state, router])
+
+  if (action !== 'create-project' || !isAdminTier) return null
 
   return (
     <div className="glass-overlay">
@@ -21,8 +27,14 @@ export function CreateProjectModal({ action, isAdminTier, teams }: { action: str
             <X size={18} />
           </Link>
         </div>
+
+        {state?.error && (
+          <div style={{ padding: '12px', backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error-text, #dc2626)', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid var(--error-border, #f87171)' }}>
+            {state.error}
+          </div>
+        )}
         
-        <form action={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">
             <label className="form-label" htmlFor="projectTitle">Project Title</label>
             <input className="form-input" id="projectTitle" name="title" placeholder="Database Migration 2026" required />
@@ -56,7 +68,9 @@ export function CreateProjectModal({ action, isAdminTier, teams }: { action: str
 
           <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
             <Link href="/dashboard" className="btn btn-secondary">Cancel</Link>
-            <button className="btn btn-primary" type="submit">Create Project</button>
+            <button className="btn btn-primary" type="submit" disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create Project'}
+            </button>
           </div>
         </form>
       </div>

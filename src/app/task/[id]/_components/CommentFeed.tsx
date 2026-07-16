@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { addCommentAction, deleteCommentAction } from '@/actions/commentActions'
 import { UserRole } from '@prisma/client'
-import { Send, Trash2, User } from 'lucide-react'
+import { Send, Trash2 } from 'lucide-react'
+import Image from 'next/image'
 
 export function CommentFeed({ taskId, comments, currentUser }: { taskId: string, comments: any[], currentUser: any }) {
   const [state, formAction, isPending] = useActionState(addCommentAction, null)
@@ -37,7 +38,7 @@ export function CommentFeed({ taskId, comments, currentUser }: { taskId: string,
             return (
               <div key={comment.id} style={{ display: 'flex', gap: 'var(--spacing-12)', alignItems: 'flex-start' }}>
                 {comment.user.avatarUrl ? (
-                  <img src={comment.user.avatarUrl} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                  <Image src={comment.user.avatarUrl} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>
                     {getInitials(comment.user.name)}

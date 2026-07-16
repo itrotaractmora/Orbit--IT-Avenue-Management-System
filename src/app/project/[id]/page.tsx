@@ -27,7 +27,7 @@ export default async function ProjectProfilePage(props: { params: Promise<{ id: 
     include: {
       team: { include: { lead: true, coDirector: true, members: true } },
       tasks: {
-        include: { assignee: true }
+        include: { assignees: true }
       },
       members: true, // Specific cross-functional project members
       creator: true
@@ -273,16 +273,20 @@ export default async function ProjectProfilePage(props: { params: Promise<{ id: 
                 <tr key={t.id}>
                   <td style={{ fontWeight: 500 }}>{t.title}</td>
                   <td>
-                    {t.assignee ? (
-                      <Link href={`/profile/${t.assignedToId}`} style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 'bold' }}>
-                          {t.assignee.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        {t.assignee.name}
-                      </Link>
-                    ) : (
-                      <span style={{ color: 'var(--on-surface-variant)' }}>Unassigned</span>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {t.assignees && t.assignees.length > 0 ? (
+                        t.assignees.map((assignee: any) => (
+                          <Link key={assignee.id} href={`/profile/${assignee.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 'bold' }}>
+                              {assignee.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            {assignee.name}
+                          </Link>
+                        ))
+                      ) : (
+                        <span style={{ color: 'var(--on-surface-variant)' }}>Unassigned</span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <span className={`chip chip-${

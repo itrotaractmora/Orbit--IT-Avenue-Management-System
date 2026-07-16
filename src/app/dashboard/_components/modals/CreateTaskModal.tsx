@@ -68,18 +68,29 @@ export function CreateTaskModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="assignedToId">Assignee</label>
-            <select className="form-select" id="assignedToId" name="assignedToId">
-              <option value="">Leave Unassigned (Open to Claim)</option>
+            <label className="form-label">Assignees</label>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {isTeamLead
                 ? users.filter(u => u.teamId === userTeamId).map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                      <input type="checkbox" name="assigneeIds" value={u.id} />
+                      {u.name}
+                    </label>
                   ))
                 : users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.role.toLowerCase()})</option>
+                    <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                      <input type="checkbox" name="assigneeIds" value={u.id} />
+                      {u.name} <span style={{ color: 'var(--on-surface-variant)', fontSize: '12px' }}>({u.role.toLowerCase()})</span>
+                    </label>
                   ))
               }
-            </select>
+              {(!users || users.length === 0) && (
+                <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}>No users available</div>
+              )}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginTop: '4px' }}>
+              Select multiple users, or leave all unchecked for an open task.
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--spacing-12)' }}>

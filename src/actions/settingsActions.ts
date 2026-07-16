@@ -63,14 +63,12 @@ export async function updateEmailAction(prevState: any, formData: FormData) {
       return { error: error.message }
     }
 
-    // Update in Prisma
-    await prisma.user.update({
-      where: { id: sessionUser.id },
-      data: { email: email.toLowerCase().trim() }
-    })
+    // NOTE: Do NOT update Prisma email here. Supabase requires email confirmation
+    // before the change takes effect. The Prisma email should be updated only after
+    // the user confirms the new email (e.g., via the auth callback or a webhook).
 
     revalidatePath('/')
-    return { success: 'Email updated! You may need to verify the new address depending on your server settings.' }
+    return { success: 'A confirmation email has been sent to your new address. Your email will be updated once you confirm it.' }
   } catch (error: any) {
     console.error('Failed to update email:', error)
     return { error: 'Failed to update email' }

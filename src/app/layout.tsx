@@ -20,8 +20,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rotaract UoM — IT Division Task Management",
-  description: "IT Division Task Management System — Rotaract Club of University of Moratuwa",
+  title: "Orbit | RotaractMora IT Avenue Management System",
+  description: "RotaractMora IT Avenue Management System",
 };
 
 export default function RootLayout({

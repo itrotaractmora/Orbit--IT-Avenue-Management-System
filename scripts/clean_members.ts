@@ -42,7 +42,7 @@ async function main() {
     where: {
       OR: [
         { createdById: { in: memberIds } },
-        { assignedToId: { in: memberIds } },
+        { assignees: { some: { id: { in: memberIds } } } },
         { approverId: { in: memberIds } }
       ]
     }

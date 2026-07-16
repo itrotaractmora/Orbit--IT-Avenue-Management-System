@@ -89,10 +89,7 @@ export default async function DashboardLayout({
                   <LayoutDashboard size={18} />
                   <span>Dashboard</span>
                 </NavLink>
-                <NavLink href="/dashboard/board">
-                  <KanbanSquare size={18} />
-                  <span>Kanban Board</span>
-                </NavLink>
+
               </nav>
             </div>
 

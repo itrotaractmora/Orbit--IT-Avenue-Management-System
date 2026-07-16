@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { TaskStatus } from '@prisma/client'
 import { updateTaskStatus } from '@/actions/kanbanActions'
 import Link from 'next/link'
-import { Calendar, AlertCircle } from 'lucide-react'
+import { Calendar, AlertCircle, Plus, Search, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const COLUMNS = [
@@ -19,6 +19,10 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<TaskStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState<string>('ALL')
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [isAddingTask, setIsAddingTask] = useState(false)
   const router = useRouter()
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -68,7 +72,27 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
       router.refresh()
     }
   }
-
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTaskTitle.trim()) return
+    
+    setIsAddingTask(true)
+    try {
+      const { quickCreateTask } = await import('@/actions/kanbanActions')
+      const result = await quickCreateTask(newTaskTitle)
+      if (result.error) {
+        setError(result.error)
+        setTimeout(() => setError(null), 3000)
+      } else if (result.task) {
+        setTasks([...tasks, { ...result.task, assignees: [currentUser], project: null }])
+        setNewTaskTitle('')
+      }
+    } catch (err: any) {
+      setError('Failed to create task')
+    } finally {
+      setIsAddingTask(false)
+    }
+  }
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'URGENT': return 'var(--danger)'
@@ -86,9 +110,43 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
         </div>
       )}
 
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <Search size={16} color="var(--on-surface-variant)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Search tasks..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="form-input"
+            style={{ paddingLeft: '36px', height: '36px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Filter size={16} color="var(--on-surface-variant)" />
+          <select 
+            value={priorityFilter} 
+            onChange={e => setPriorityFilter(e.target.value)}
+            className="form-select"
+            style={{ height: '36px', minWidth: '120px' }}
+          >
+            <option value="ALL">All Priorities</option>
+            <option value="URGENT">Urgent</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: 'var(--spacing-16)', overflowX: 'auto', flex: 1, paddingBottom: '16px' }}>
         {COLUMNS.map(col => {
-          const colTasks = tasks.filter(t => t.status === col.id)
+          const colTasks = tasks.filter(t => {
+            if (t.status !== col.id) return false
+            if (priorityFilter !== 'ALL' && t.priority !== priorityFilter) return false
+            if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+            return true
+          })
           
           return (
             <div 
@@ -115,18 +173,38 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
               </div>
 
               <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, overflowY: 'auto' }}>
+                {col.id === TaskStatus.OPEN && (
+                  <form onSubmit={handleQuickAdd} style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Add a task..." 
+                      value={newTaskTitle}
+                      onChange={e => setNewTaskTitle(e.target.value)}
+                      className="form-input"
+                      style={{ height: '32px', fontSize: '13px' }}
+                      disabled={isAddingTask}
+                    />
+                    <button type="submit" className="btn btn-secondary" style={{ padding: '0 8px', height: '32px' }} disabled={!newTaskTitle.trim() || isAddingTask}>
+                      <Plus size={16} />
+                    </button>
+                  </form>
+                )}
                 {colTasks.map(task => (
                   <div 
                     key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
+                    draggable={currentUser.role !== 'MEMBER'}
+                    onDragStart={(e) => {
+                      if (currentUser.role !== 'MEMBER') {
+                        handleDragStart(e, task.id)
+                      }
+                    }}
                     style={{
                       backgroundColor: 'var(--background)',
                       padding: '16px',
                       borderRadius: '8px',
                       boxShadow: draggingId === task.id ? '0 8px 24px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.05)',
                       border: '1px solid var(--border)',
-                      cursor: 'grab',
+                      cursor: currentUser.role !== 'MEMBER' ? 'grab' : 'default',
                       opacity: draggingId === task.id ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -146,7 +224,7 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
                         )}
                       </div>
                       
-                      <Link href={`/task/${task.id}`} draggable={false} style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', textDecoration: 'none', display: 'block', lineHeight: 1.4 }} className="hover-underline">
+                      <Link href={`/dashboard?action=edit-task-${task.id}`} draggable={false} style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', textDecoration: 'none', display: 'block', lineHeight: 1.4 }} className="hover-underline">
                         {task.title}
                       </Link>
                     </div>
@@ -157,15 +235,19 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
                         {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
                       </div>
                       
-                      {task.assignee ? (
-                        <div title={`Assigned to ${task.assignee.name}`}>
-                          {task.assignee.avatarUrl ? (
-                            <img src={task.assignee.avatarUrl} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} draggable={false} />
-                          ) : (
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
-                              {task.assignee.name.substring(0, 2).toUpperCase()}
+                      {task.assignees && task.assignees.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '4px' }} title={`Assigned to ${task.assignees.map((a: any) => a.name).join(', ')}`}>
+                          {task.assignees.map((assignee: any) => (
+                            <div key={assignee.id}>
+                              {assignee.avatarUrl ? (
+                                <img src={assignee.avatarUrl} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} draggable={false} />
+                              ) : (
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                  {assignee.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
                       ) : (
                         <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Unassigned">
@@ -173,6 +255,16 @@ export function KanbanBoard({ initialTasks, currentUser }: { initialTasks: any[]
                         </div>
                       )}
                     </div>
+
+                    {task.status === TaskStatus.IN_PROGRESS && currentUser.role === 'MEMBER' && (
+                      <Link 
+                        href={`/dashboard?action=complete-task-${task.id}`}
+                        className="btn btn-primary"
+                        style={{ marginTop: '4px', padding: '6px 12px', fontSize: '12px', display: 'block', textAlign: 'center' }}
+                      >
+                        Complete Task
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>

@@ -1,6 +1,6 @@
-# Contributing to IT Avenue Task Management System
+# Contributing to Orbit | RotaractMora IT Avenue Management System
 
-Welcome! Thank you for your interest in contributing to the **IT Avenue Task Management System**. 
+Welcome! Thank you for your interest in contributing to **Orbit | RotaractMora IT Avenue Management System**. 
 
 This guide is written specifically for newcomers, assuming you have zero prior setup on your machine. We will walk you through every step to get the project running locally, explain the codebase structure, and guide you on how to work with the database using **Prisma Studio**.
 
@@ -93,8 +93,9 @@ Prisma Studio is a beautiful visual dashboard that runs in your browser. It lets
   1. Click on the `User` model.
   2. Click **Add Record** at the top right.
   3. Fill in your name, email, and choose the `PRESIDENT` role.
-  4. Click **Save Changes** (in the green top bar).
-  5. Go to your local app (`http://localhost:3000/signup`), signup with the **same email address**, and your credentials will automatically sync and link your account with the database profile!
+  4. Fill in `inviteCode` with a random 6-digit number (e.g., `123456`).
+  5. Click **Save Changes** (in the green top bar).
+  6. Go to your local app (`http://localhost:3000/join`), enter your email and the 6-digit code, then set your permanent password to activate your account!
 - **Modifying Roles / Statuses:**
   If you onboarded a user and want to change their role (e.g. from `MEMBER` to `CO_DIRECTOR`), you can click their record inside `User` in Prisma Studio, double click the `role` field, change the value, and save.
 - **Clearing Logs / Dismissing Notifications:**

@@ -1,4 +1,4 @@
-# IT Avenue Task Management System — Detailed Specification
+# Orbit | RotaractMora IT Avenue Management System — Detailed Specification
 
 ## 1. Overview
 
@@ -139,11 +139,11 @@ A web-based task and project management system for the IT Avenue division, built
 
 ## 5. Core Workflows
 
-**Onboarding a user (Email Invitation Flow)**
+**Onboarding a user (Invitation Code Flow)**
 - The system is strict invite-only. A user with appropriate permissions (President, Senior Director, Co-Director, or Team Lead) enters the new employee's name, email, role, and team.
-- The system immediately creates an underlying database record mapping their role and team.
-- The system generates a secure invitation link (configured to expire in 48 hours and redirect to `/auth/confirm`) and sends it to the user's email address using a custom Nodemailer SMTP service.
-- The user clicks the link in the email, which redirects them to the client-side session processor `/auth/confirm`. This route sets the session in the browser (handling any active session overrides cleanly) and redirects them to `/update-password` to set their permanent password.
+- The system immediately creates an underlying database record mapping their role, team, and generates a random 6-digit `inviteCode`.
+- The system dispatches an email via SMTP containing the 6-digit invitation code (no links are included to avoid spam filters).
+- The user navigates to `/join`, enters their email and the 6-digit code. The system verifies this and redirects them to `/update-password` to set their permanent password.
 - Once the password is saved, their account is fully activated.
 
 **Self-Signup Workflow (Allowed Email Domain)**

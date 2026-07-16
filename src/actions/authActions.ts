@@ -140,11 +140,10 @@ export async function signupAction(prevState: any, formData: FormData) {
   }
 
   const otp = linkData.properties.email_otp
-  const link = linkData.properties.action_link
 
-  // Send email using custom Nodemailer SMTP
+  // Send email using custom Nodemailer SMTP (OTP only, no Supabase link to avoid spam filters)
   try {
-    await sendSignupOtpEmail(email, otp, link)
+    await sendSignupOtpEmail(email, otp)
   } catch (mailError: any) {
     console.error('Failed to send verification email:', mailError)
     return { error: 'Failed to send verification email. Please check your SMTP settings.' }
@@ -235,8 +234,7 @@ export async function resendSignupOtpAction(email: string, password?: string) {
     }
 
     const otp = linkData.properties.email_otp
-    const link = linkData.properties.action_link
-    await sendSignupOtpEmail(email, otp, link)
+    await sendSignupOtpEmail(email, otp)
 
     return { success: true }
   } catch (err: any) {

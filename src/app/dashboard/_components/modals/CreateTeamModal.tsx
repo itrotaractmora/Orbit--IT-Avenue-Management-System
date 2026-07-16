@@ -1,17 +1,23 @@
+'use client'
+
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { UserRole } from '@prisma/client'
 import { createTeam } from '@/actions/userActions'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
 
 export function CreateTeamModal({ action, isExecutive, users }: { action: string | undefined, isExecutive: boolean, users: any[] }) {
-  if (action !== 'create-team' || !isExecutive) return null
+  const router = useRouter()
+  const [state, formAction, isPending] = useActionState(createTeam, null)
 
-  async function handleCreateTeam(formData: FormData) {
-    'use server'
-    await createTeam(null, formData)
-    redirect('/dashboard')
-  }
+  useEffect(() => {
+    if (state?.success) {
+      router.push('/dashboard')
+    }
+  }, [state, router])
+
+  if (action !== 'create-team' || !isExecutive) return null
 
   return (
     <div className="glass-overlay">
@@ -22,8 +28,14 @@ export function CreateTeamModal({ action, isExecutive, users }: { action: string
             <X size={18} />
           </Link>
         </div>
+
+        {state?.error && (
+          <div style={{ padding: '12px', backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error-text, #dc2626)', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid var(--error-border, #f87171)' }}>
+            {state.error}
+          </div>
+        )}
         
-        <form action={handleCreateTeam} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <div className="form-group">
             <label className="form-label" htmlFor="teamName">Team Name</label>
             <input className="form-input" id="teamName" name="name" placeholder="Network Infrastructure Team" required />
@@ -41,7 +53,9 @@ export function CreateTeamModal({ action, isExecutive, users }: { action: string
 
           <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
             <Link href="/dashboard" className="btn btn-secondary">Cancel</Link>
-            <button className="btn btn-primary" type="submit">Create Team</button>
+            <button className="btn btn-primary" type="submit" disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create Team'}
+            </button>
           </div>
         </form>
       </div>

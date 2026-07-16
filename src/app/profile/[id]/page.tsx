@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           project: true,
           creator: true,
           assigner: true,
-          assignee: true,
+          assignees: true,
         },
         orderBy: { updatedAt: 'desc' }
       },

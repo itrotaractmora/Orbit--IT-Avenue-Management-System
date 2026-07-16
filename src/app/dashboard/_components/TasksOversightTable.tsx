@@ -10,11 +10,13 @@ import { ChevronLeft, ChevronRight, Search, Pencil, Trash2 } from 'lucide-react'
 interface TasksOversightTableProps {
   tasks: any[]
   users: any[]
+  title?: string
+  defaultStatus?: string
 }
 
-export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) {
+export function TasksOversightTable({ tasks, users, title = "Tasks Oversight", defaultStatus = "ALL" }: TasksOversightTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<string>(defaultStatus)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -23,7 +25,7 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
   // Filter
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (t.assignee?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (t.assignees?.map((a: any) => a.name).join(' ') || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (t.project?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter
     return matchesSearch && matchesStatus
@@ -46,7 +48,7 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
     const headers = ['Task Title', 'Assignee', 'Project', 'Status', 'Due Date']
     const rows = filteredTasks.map(t => [
       `"${t.title.replace(/"/g, '""')}"`,
-      `"${t.assignee?.name || 'Unassigned'}"`,
+      `"${t.assignees && t.assignees.length > 0 ? t.assignees.map((a: any) => a.name).join(', ') : 'Unassigned'}"`,
       `"${t.project?.title || 'General Task'}"`,
       `"${t.status}"`,
       `"${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'None'}"`
@@ -65,7 +67,7 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 className="section-title">Tasks Oversight</h2>
+        <h2 className="section-title">{title}</h2>
         
         <div style={{ display: 'flex', gap: 'var(--spacing-12)', alignItems: 'center' }}>
           <button className="btn btn-secondary" onClick={exportCSV} style={{ height: '36px', fontSize: '12px' }}>
@@ -121,7 +123,27 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
                     <Link href={`/task/${t.id}`} style={{ fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }} className="hover-underline">
                       {t.title}
                     </Link>
-                    <div style={{ fontSize: '11px', color: 'var(--on-surface-variant)', marginTop: '2px' }}>Priority: {t.priority}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--on-surface-variant)', marginTop: '2px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span>Priority: {t.priority}</span>
+                      {t.dueDate && (
+                        <>
+                          <span>•</span>
+                          <span>Due: {new Date(t.dueDate).toLocaleDateString()}</span>
+                          {new Date(t.dueDate) < new Date() && t.status !== TaskStatus.COMPLETED && (
+                            <span style={{ 
+                              color: 'var(--danger)', 
+                              backgroundColor: 'var(--danger-bg)', 
+                              padding: '2px 4px', 
+                              borderRadius: '4px', 
+                              fontWeight: 600,
+                              fontSize: '10px'
+                            }}>
+                              OVERDUE
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
                     {t.status === TaskStatus.REJECTED && rejectionComment && (
                       <div style={{
                         fontSize: '11px',
@@ -136,29 +158,48 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
                         <strong>Reason:</strong> {rejectionComment}
                       </div>
                     )}
+                    {(t.status === TaskStatus.COMPLETED || t.status === TaskStatus.PENDING_APPROVAL) && t.comments && t.comments.length > 0 && (
+                      <div style={{
+                        fontSize: '11px',
+                        color: 'var(--primary)',
+                        backgroundColor: 'var(--primary-light)',
+                        border: '1px solid rgba(var(--primary-rgb), 0.1)',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        marginTop: '4px',
+                        display: 'inline-block'
+                      }}>
+                        <strong>Submission Note:</strong> {t.comments[0].content}
+                      </div>
+                    )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--primary-light)',
-                        color: 'var(--primary)',
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {t.assignee ? getInitials(t.assignee.name) : 'U'}
-                      </div>
-                      {t.assignee ? (
-                        <Link href={`/profile/${t.assignee.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
-                          {t.assignee.name}
-                        </Link>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {t.assignees && t.assignees.length > 0 ? (
+                        t.assignees.map((assignee: any) => (
+                          <div key={assignee.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--primary-light)',
+                              color: 'var(--primary)',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {getInitials(assignee.name)}
+                            </div>
+                            <Link href={`/profile/${assignee.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, fontSize: '13px' }}>
+                              {assignee.name}
+                            </Link>
+                          </div>
+                        ))
                       ) : (
-                        <span>Unassigned</span>
+                        <span style={{ fontSize: '13px' }}>Unassigned</span>
                       )}
                     </div>
                   </td>
@@ -192,7 +233,7 @@ export function TasksOversightTable({ tasks, users }: TasksOversightTableProps) 
                         <Pencil size={14} /> Edit
                       </Link>
                       
-                      <form action={async () => { await deleteTaskAction(t.id) }}>
+                      <form action={async () => { await deleteTaskAction(t.id) }} onSubmit={(e) => { if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) e.preventDefault() }}>
                         <button type="submit" className="btn" style={{ height: '32px', padding: '0 8px', fontSize: '12px', borderRadius: '8px', backgroundColor: 'var(--danger)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <Trash2 size={14} /> Delete
                         </button>

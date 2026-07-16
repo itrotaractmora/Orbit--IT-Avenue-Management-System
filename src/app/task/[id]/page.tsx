@@ -2,9 +2,10 @@ import { getSessionUser } from '@/actions/authActions'
 import { prisma } from '@/utils/prisma'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, FileText, CheckCircle2, AlertCircle, Clock, CheckSquare } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, CheckSquare } from 'lucide-react'
 import { CommentFeed } from './_components/CommentFeed'
-import { TaskStatus, TaskPriority, UserRole } from '@prisma/client'
+import { UserRole } from '@prisma/client'
+import Image from 'next/image'
 
 export default async function TaskDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser()
@@ -19,7 +20,7 @@ export default async function TaskDetailsPage({ params }: { params: Promise<{ id
     where: { id },
     include: {
       project: true,
-      assignee: true,
+      assignees: true,
       creator: true,
       approver: true,
       comments: {
@@ -39,12 +40,6 @@ export default async function TaskDetailsPage({ params }: { params: Promise<{ id
     )
   }
 
-  // Authorization check (similar to view checks in other parts)
-  const isCreator = task.createdById === user.id
-  const isAssignee = task.assignedToId === user.id
-  const isAdminTier = ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(user.role)
-  const isTeamLead = user.role === UserRole.TEAM_LEAD
-  
   // Basic access control: If not admin/lead and not creator/assignee, maybe deny? 
   // For this club system, members can usually see open general tasks, or project tasks they are members of.
   // We will allow viewing if they have the URL for simplicity in a collaborative environment,
@@ -131,18 +126,20 @@ export default async function TaskDetailsPage({ params }: { params: Promise<{ id
                 <div style={{ backgroundColor: 'var(--surface-variant)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
                     <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginBottom: '4px' }}>Assignee</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {task.assignee ? (
-                        <>
-                          {task.assignee.avatarUrl ? (
-                            <img src={task.assignee.avatarUrl} alt="Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
-                              {task.assignee.name.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <span style={{ fontWeight: 600, fontSize: '14px' }}>{task.assignee.name}</span>
-                        </>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {task.assignees && task.assignees.length > 0 ? (
+                        task.assignees.map((assignee: any) => (
+                          <div key={assignee.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--background)', padding: '4px 8px', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                            {assignee.avatarUrl ? (
+                              <Image src={assignee.avatarUrl} alt="Avatar" width={24} height={24} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                {assignee.name.substring(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <Link href={`/profile/${assignee.id}`} style={{ fontWeight: 600, fontSize: '14px', textDecoration: 'none', color: 'var(--on-surface)' }} className="hover-underline">{assignee.name}</Link>
+                          </div>
+                        ))
                       ) : (
                         <span style={{ fontStyle: 'italic', color: 'var(--on-surface-variant)', fontSize: '14px' }}>Unassigned</span>
                       )}

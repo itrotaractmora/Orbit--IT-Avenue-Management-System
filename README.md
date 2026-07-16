@@ -1,4 +1,4 @@
-# IT Avenue Task Management System
+# Orbit | RotaractMora IT Avenue Management System
 
 A modern, highly-performant, role-scoped task and project management system designed specifically for the IT Avenue division. It features a strict five-tier organizational hierarchy, an invite-only email onboarding system, dynamic role-based dashboards, and a robust task approval pipeline.
 
@@ -8,17 +8,17 @@ A modern, highly-performant, role-scoped task and project management system desi
 
 ### 🔐 Security & Access Control
 - **Strict Role Hierarchy:** Five distinct tiers (President → Senior Director → Co-Director → Team Lead → Member).
-- **Invite-Only Onboarding:** Administrators invite members directly from the dashboard. The system utilizes **Supabase Admin APIs** to dispatch secure email invitations allowing users to create their accounts safely.
+- **Invite-Only Onboarding:** Administrators invite members directly from the dashboard. The system utilizes Resend (or configured SMTP) to dispatch secure 6-digit invitation codes allowing users to verify their email and join securely without relying on third-party magic links.
 - **Role-Based Dashboards:** The main dashboard intelligently filters data. Executives see division-wide analytics, Team Leads oversee their specific teams, and Members are restricted to their personal active workloads.
 
 ### 📋 Advanced Task Lifecycle
 - **Task Claiming & Dropping:** Members can pull open tasks from their team's queue. If they are unable to complete it, they can drop it by providing a mandatory reason that notifies their manager.
 - **Manual Reassignment:** Admins can instantly transfer tasks between employees to optimize workload.
-- **Mandatory Approvals:** To ensure quality, all completed work enters a `Pending Approval` state. Assignees can *never* approve their own tasks.
+- **Mandatory Approvals:** To ensure quality, all completed work enters a `Pending Approval` state. Members submit tasks with a submission note via a dedicated "Complete Task" modal instead of freely moving cards to Done. Assignees can *never* approve their own tasks.
 - **Automated Escalations:** Includes a secure API cron-trigger (`/api/cron/escalate`) that automatically sweeps for stalled approvals and escalates them up the leadership chain.
 
 ### 🎨 Modern UI & Experience
-- **Interactive Kanban Board:** A fully functional, drag-and-drop Kanban Board (`/dashboard/board`) powered by HTML5 Drag and Drop API allows seamless task progression across columns.
+- **Interactive Kanban Board:** A fully functional Kanban Board (`/dashboard/board`). Admins have full drag-and-drop capabilities to reorganize priorities, while members have a guided flow with context-aware action buttons for completing their specific tasks.
 - **Task Comments & Collaboration:** Dedicated task detail pages feature real-time activity feeds where members can comment, collaborate, and discuss task specifics.
 - **Fluid & Responsive:** Built from the ground up without heavy CSS frameworks. Utilizes native CSS variables, flexbox, and grid layouts. Features a sliding mobile drawer for smaller screens.
 - **Dark Mode Integration:** Native, flicker-free dark mode toggle using `next-themes` style implementations.

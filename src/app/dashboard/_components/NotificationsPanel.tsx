@@ -25,7 +25,7 @@ function NotificationItem({ n }: { n: any }) {
     textColor = 'var(--danger)'
   }
 
-  const dismissAction = async () => {
+  async function handleDismiss() {
     'use server'
     await dismissNotification(n.id)
   }
@@ -68,13 +68,16 @@ function NotificationItem({ n }: { n: any }) {
           </span>
         </div>
         <p style={{ color: 'var(--on-surface)', marginTop: '4px', lineHeight: '1.4' }}>
-          {n.type === 'TASK_ASSIGNED' && `You have been assigned to task "${n.task?.title || 'Untitled'}"`}
+          {n.type === 'TASK_ASSIGNED' && (n.task?.status === 'COMPLETED'
+            ? `Your task "${n.task?.title || 'Untitled'}" has been approved and marked as completed.`
+            : `You have been assigned to task "${n.task?.title || 'Untitled'}"`
+          )}
           {n.type === 'APPROVAL_NEEDED' && `Task "${n.task?.title || 'Untitled'}" is pending your approval review.`}
           {n.type === 'TASK_REJECTED' && `Your task "${n.task?.title || 'Untitled'}" was rejected.`}
           {n.type === 'TASK_OVERDUE' && `Task "${n.task?.title || 'Untitled'}" is overdue!`}
         </p>
       </div>
-      <form action={dismissAction}>
+      <form action={handleDismiss}>
         <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '12px' }} type="submit">
           Dismiss
         </button>

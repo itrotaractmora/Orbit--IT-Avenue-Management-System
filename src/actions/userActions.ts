@@ -79,24 +79,29 @@ export async function onboardUser(prevState: any, formData: FormData) {
       }
     })
 
-    if (authError || !authData.user || !authData.properties?.action_link) {
+    if (authError || !authData.user || !authData.properties) {
       console.error('Supabase Auth error:', authError)
       return { error: `Failed to generate onboarding link: ${authError?.message || 'Unknown error'}` }
     }
 
     const authUserId = authData.user.id
-    const actionLink = authData.properties.action_link
+    const hashedToken = authData.properties.hashed_token
 
-    // 2. Create user in Prisma with matching ID
+    // Generate a 6-digit invite code (no links in email to avoid spam filters)
+    const inviteCode = Math.floor(100000 + Math.random() * 900000).toString()
+
+    // 2. Create user in Prisma with matching ID + invite code
     const newUser = await prisma.user.create({
       data: {
         id: authUserId,
         name,
         email,
         role,
-        teamId: teamId || undefined,
-        managerId: actor.id,
-        status: UserStatus.ACTIVE
+        ...(teamId ? { team: { connect: { id: teamId } } } : {}),
+        manager: { connect: { id: actor.id } },
+        status: UserStatus.ACTIVE,
+        inviteCode,
+        inviteTokenHash: hashedToken,
       }
     })
 
@@ -126,12 +131,11 @@ export async function onboardUser(prevState: any, formData: FormData) {
       }
     })
 
-    // 3. Send SMTP invitation email using custom Nodemailer mailer
+    // 3. Send SMTP invitation email with CODE only (no links — links trigger Gmail spam)
     try {
-      await sendInvitationEmail(email, name, role, actionLink)
+      await sendInvitationEmail(email, name, role, inviteCode)
     } catch (mailError: any) {
       console.error('Failed to send SMTP onboarding email:', mailError)
-      // We still return success as user creation succeeded, but log/warn about email delivery.
       return { success: 'User onboarded, but SMTP invitation email failed to send. Please check your SMTP configuration.' }
     }
 
@@ -287,13 +291,16 @@ export async function updateTaskStatusAction(taskId: string, nextStatus: TaskSta
     return { error: 'Unauthorized' }
   }
 
-  const task = await prisma.task.findUnique({ where: { id: taskId } })
+  const task = await prisma.task.findUnique({ 
+    where: { id: taskId },
+    include: { assignees: true }
+  })
   if (!task) {
     return { error: 'Task not found.' }
   }
 
-  if (task.assignedToId !== actor.id) {
-    return { error: 'Only the assignee can update this task status.' }
+  if (!task.assignees.some(u => u.id === actor.id)) {
+    return { error: 'Only an assignee can update this task status.' }
   }
 
   const validTransitions: Record<TaskStatus, TaskStatus[]> = {
@@ -391,5 +398,38 @@ export async function deactivateUserAction(userId: string) {
     return { success: 'User has been deactivated successfully.' }
   } catch (error: any) {
     return { error: `Failed to deactivate user: ${error.message}` }
+  }
+}
+
+export async function verifyInviteCode(email: string, code: string) {
+  if (!email || !code) {
+    return { error: 'Email and invitation code are required.' }
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: { inviteCode: true, inviteTokenHash: true }
+    })
+
+    if (!user || !user.inviteCode || !user.inviteTokenHash) {
+      return { error: 'No pending invitation found for this email.' }
+    }
+
+    if (user.inviteCode !== code.trim()) {
+      return { error: 'Invalid invitation code. Please check and try again.' }
+    }
+
+    const tokenHash = user.inviteTokenHash
+
+    // Clear the invite fields after successful verification
+    await prisma.user.update({
+      where: { email: email.trim().toLowerCase() },
+      data: { inviteCode: null, inviteTokenHash: null }
+    })
+
+    return { success: true, tokenHash }
+  } catch (error: any) {
+    return { error: `Verification failed: ${error.message}` }
   }
 }

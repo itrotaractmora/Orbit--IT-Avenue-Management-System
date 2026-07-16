@@ -7,7 +7,8 @@ import { UserRole, TaskStatus } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
-import { Clock } from 'lucide-react'
+import { KanbanBoard } from './_components/KanbanBoard'
+import { Plus, Search, Filter, KanbanSquare, Clock } from 'lucide-react'
 
 // Components
 import { StatsGrid } from './_components/StatsGrid'
@@ -28,6 +29,7 @@ import { CreateTeamModal } from './_components/modals/CreateTeamModal'
 import { CreateProjectModal } from './_components/modals/CreateProjectModal'
 import { CreateTaskModal } from './_components/modals/CreateTaskModal'
 import { EditTaskModal } from './_components/modals/EditTaskModal'
+import { CompleteTaskModal } from './_components/modals/CompleteTaskModal'
 
 interface PageProps {
   searchParams: Promise<{ action?: string }>
@@ -61,7 +63,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       include: { task: true },
       orderBy: { createdAt: 'desc' }
     }),
-    isExecutive ? prisma.auditLog.findMany({ take: 8, orderBy: { timestamp: 'desc' } }) : Promise.resolve([]),
+    isExecutive ? prisma.auditLog.findMany({ take: 5, orderBy: { timestamp: 'desc' } }) : Promise.resolve([]),
     isAdminTier ? prisma.joinRequest.findMany({ where: { status: JoinRequestStatus.PENDING }, include: { user: true, project: true }, orderBy: { createdAt: 'desc' } }) : Promise.resolve([])
   ])
 
@@ -75,9 +77,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     // Team Lead / Member sees their own tasks, their team's tasks, AND any OPEN task division-wide
     visibleTasks = allTasks.filter(t => 
       t.status === TaskStatus.OPEN || 
-      (t.project?.teamId === user.teamId) || 
-      (t.project?.members?.some((m: any) => m.id === user.id)) ||
-      t.assignedToId === user.id || 
+      t.assignees.some((a: any) => a.id === user.id) || 
+      t.project?.members.some((m: any) => m.id === user.id) ||
       t.createdById === user.id
     )
   }
@@ -88,7 +89,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const overdueTasks = visibleTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== TaskStatus.COMPLETED).length
 
   // Filter Tasks for specific views
-  const myTasks = allTasks.filter(t => t.assignedToId === user.id)
+  const myTasks = allTasks.filter(t => t.assignees.some((a: any) => a.id === user.id))
   
   // Pending approvals for this user specifically
   const myPendingApprovals = allTasks.filter(t => t.status === TaskStatus.PENDING_APPROVAL && (t.approverId === user.id || user.role === UserRole.PRESIDENT))
@@ -96,7 +97,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Claimable tasks (Open tasks within the visible scope that aren't assigned)
   const claimableTasks = visibleTasks.filter(t => {
     if (t.status !== TaskStatus.OPEN) return false
-    if (t.assignedToId) return false
+    if (t.assignees && t.assignees.length > 0) return false
     return true
   })
 
@@ -174,10 +175,36 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           
           {(isTeamLead || isMember) && <MyTasksBoard myTasks={myTasks} />}
           
-          {(isExecutive || isCoDirector) && <TasksOversightTable tasks={visibleTasks} users={allUsers} />}
+          {(isExecutive || isCoDirector) && (
+            <>
+              <TasksOversightTable 
+                tasks={visibleTasks.filter(t => t.status === 'IN_PROGRESS')} 
+                users={allUsers} 
+                title="Current Ongoing Tasks" 
+                defaultStatus="IN_PROGRESS" 
+              />
+              <TasksOversightTable 
+                tasks={visibleTasks} 
+                users={allUsers} 
+                title="All Tasks Oversight"
+              />
+            </>
+          )}
           
           {isTeamLead && (
-            <TasksOversightTable tasks={visibleTasks.filter(t => t.assignedToId !== user.id)} users={allUsers.filter(u => u.teamId === user.teamId)} />
+            <>
+              <TasksOversightTable 
+                tasks={visibleTasks.filter(t => !t.assignees.some((a: any) => a.id === user.id) && t.status === 'IN_PROGRESS')} 
+                users={allUsers.filter(u => u.teamId === user.teamId)} 
+                title="Team Ongoing Tasks"
+                defaultStatus="IN_PROGRESS"
+              />
+              <TasksOversightTable 
+                tasks={visibleTasks.filter(t => !t.assignees.some((a: any) => a.id === user.id))} 
+                users={allUsers.filter(u => u.teamId === user.teamId)} 
+                title="Team Tasks Oversight"
+              />
+            </>
           )}
         </div>
 
@@ -186,6 +213,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           {!isMember && <QuickActions isExecutive={isExecutive} isCoDirector={isCoDirector} isTeamLead={isTeamLead} />}
           <ProjectsList projects={visibleProjects} isAdmin={isAdminTier} />
           {isExecutive && <AuditLogPanel auditLogs={auditLogs} isAdmin={isExecutive} />}
+        </div>
+      </div>
+
+      {/* KANBAN BOARD SECTION */}
+      <div className="card" style={{ marginTop: 'var(--spacing-16)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-24)' }}>
+          <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <KanbanSquare size={20} color="var(--primary)" />
+            Interactive Task Board
+          </h2>
+        </div>
+        <div style={{ height: '600px' }}>
+          <KanbanBoard initialTasks={visibleTasks} currentUser={user} />
         </div>
       </div>
 
@@ -201,6 +241,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           task={allTasks.find(t => t.id === action.replace('edit-task-', ''))} 
           projects={visibleProjects} 
           users={allUsers} 
+        />
+      )}
+      
+      {action?.startsWith('complete-task-') && (
+        <CompleteTaskModal 
+          action={action} 
+          task={allTasks.find(t => t.id === action.replace('complete-task-', ''))} 
         />
       )}
     </div>
