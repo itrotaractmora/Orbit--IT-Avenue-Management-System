@@ -48,7 +48,7 @@ type Stats = {
 
 type Props = {
   profileUser: ProfileUser
-  sessionUser: SessionUser
+  sessionUser: SessionUser | null
   isOwner: boolean
   canViewInternal: boolean
   siteUrl: string

@@ -7,9 +7,6 @@ import { ProfileExperience } from './_components/ProfileExperience'
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const sessionUser = await getSessionUser()
-  if (!sessionUser) {
-    redirect('/login')
-  }
 
   const { id } = await params
 
@@ -40,14 +37,29 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     )
   }
 
+  const isOwner = sessionUser?.id === profileUser.id || false
+  const canViewInternal = isOwner || (sessionUser ? ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(sessionUser.role) : false)
+
+  if (!canViewInternal && !profileUser.isPublicProfile) {
+    if (!sessionUser) {
+      redirect('/login')
+    }
+    return (
+      <div className="empty-state" style={{ marginTop: 'var(--spacing-32)', maxWidth: '720px', marginInline: 'auto' }}>
+        <h2 className="section-title">Private Profile</h2>
+        <p className="body-text">This profile is not public and you do not have permission to view it.</p>
+        <Link href="/dashboard" className="btn btn-primary" style={{ marginTop: 'var(--spacing-16)' }}>Return to Dashboard</Link>
+      </div>
+    )
+  }
+
   const completedTasks = profileUser.assignedTasks.filter((task) => task.status === TaskStatus.COMPLETED)
   const inFlightTasks = profileUser.assignedTasks.filter((task) => task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.PENDING_APPROVAL)
   const assignedTasks = profileUser.assignedTasks.filter((task) => task.status === TaskStatus.OPEN)
   const approvalRate = profileUser.assignedTasks.length > 0
     ? Math.round((completedTasks.length / profileUser.assignedTasks.length) * 100)
     : 0
-  const isOwner = sessionUser.id === profileUser.id
-  const canViewInternal = isOwner || ([UserRole.PRESIDENT, UserRole.SENIOR_DIRECTOR, UserRole.CO_DIRECTOR] as UserRole[]).includes(sessionUser.role)
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   return (
