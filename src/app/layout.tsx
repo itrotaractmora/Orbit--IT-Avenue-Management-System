@@ -22,6 +22,9 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Orbit | RotaractMora IT Avenue Management System",
   description: "RotaractMora IT Avenue Management System",
+  icons: {
+    icon: "/rotaract-logo.png",
+  },
 };
 
 export default function RootLayout({
